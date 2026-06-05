@@ -193,7 +193,7 @@ export default function NavLayout({
               </button>
 
               {chatDropdownOpen && (
-                <div className="absolute right-0 mt-3 w-72 bg-white border-4 border-black p-2 rounded-none shadow-[6px_6px_0px_#000] space-y-1 text-xs select-none z-50">
+                <div className="fixed sm:absolute inset-x-2 sm:inset-x-auto sm:right-0 top-[72px] sm:top-auto sm:mt-3 sm:w-72 bg-white border-4 border-black p-2 rounded-none shadow-[6px_6px_0px_#000] space-y-1 text-xs select-none z-50">
                   <div className="p-2 border-b-2 border-black bg-stone-50 mb-1 rounded-none">
                     <div className="font-mono font-black text-xs uppercase text-black flex justify-between items-center">
                       <span>Vault Chats</span>
@@ -240,7 +240,7 @@ export default function NavLayout({
               </button>
 
               {notificationsDropdownOpen && (
-                <div className="absolute right-0 mt-3 w-80 bg-white border-4 border-black p-2 rounded-none shadow-[6px_6px_0px_#000] space-y-1 text-xs select-none z-50">
+                <div className="fixed sm:absolute inset-x-2 sm:inset-x-auto sm:right-0 top-[72px] sm:top-auto sm:mt-3 sm:w-80 bg-white border-4 border-black p-2 rounded-none shadow-[6px_6px_0px_#000] space-y-1 text-xs select-none z-50">
                   <div className="p-2 border-b-2 border-black bg-stone-50 mb-1 rounded-none flex justify-between items-center">
                     <span className="font-mono font-black text-xs uppercase text-neo-dark">Notifications</span>
                     {notifications.filter(n => !n.read).length > 0 && (
