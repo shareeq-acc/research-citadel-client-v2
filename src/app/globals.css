@@ -1,0 +1,168 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-neo-bg: #FFFDF0;
+  --color-neo-yellow: #FFD700;
+  --color-neo-orange: #FF6B35;
+  --color-neo-accent: #00D4AA;
+  --color-neo-purple: #7C3AED;
+  --color-neo-dark: #0A0A0A;
+  --color-neo-muted: #F0EDE0;
+}
+
+body {
+  background-color: var(--color-neo-bg);
+  color: var(--color-neo-dark);
+  font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
+}
+
+/* Custom Neobrutalist classes */
+.neo-border {
+  border: 4px solid var(--color-neo-dark);
+}
+
+.neo-border-sm {
+  border: 2px solid var(--color-neo-dark);
+}
+
+.neo-shadow {
+  box-shadow: 4px 4px 0px 0px var(--color-neo-dark);
+}
+
+.neo-shadow-lg {
+  box-shadow: 8px 8px 0px 0px var(--color-neo-dark);
+}
+
+.neo-shadow-sm {
+  box-shadow: 2px 2px 0px 0px var(--color-neo-dark);
+}
+
+.neo-btn {
+  background-color: var(--color-neo-yellow);
+  color: var(--color-neo-dark);
+  border: 3px solid var(--color-neo-dark);
+  box-shadow: 3px 3px 0px 0px var(--color-neo-dark);
+  font-family: var(--font-display);
+  font-weight: 700;
+  transition: all 0.1s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.neo-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px 0px var(--color-neo-dark);
+}
+
+.neo-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px var(--color-neo-dark);
+}
+
+.neo-card {
+  background-color: white;
+  border: 4px solid var(--color-neo-dark);
+  box-shadow: 6px 6px 0px 0px var(--color-neo-dark);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.neo-input {
+  background-color: white;
+  border: 3px solid var(--color-neo-dark);
+  color: var(--color-neo-dark);
+  font-family: var(--font-sans);
+  padding: 0.75rem;
+  outline: none;
+  transition: focus 0.15s ease;
+}
+
+.neo-input:focus {
+  background-color: #fffae0;
+  box-shadow: 3px 3px 0px 0px var(--color-neo-dark);
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+@keyframes scanTopToBottom {
+  0% {
+    top: 0%;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+.animate-scan-line {
+  animation: scanTopToBottom 2s linear infinite;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-neo-muted);
+  border-left: 2px solid var(--color-neo-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-neo-dark);
+  border: 2px solid var(--color-neo-bg);
+}
+
+/* Custom gorgeous neobrutalist horizontal scrollbar */
+.neo-scroll-x::-webkit-scrollbar {
+  height: 12px;
+}
+.neo-scroll-x::-webkit-scrollbar-track {
+  background: var(--color-neo-muted);
+  border: 2.5px solid var(--color-neo-dark);
+  border-radius: 2px;
+}
+.neo-scroll-x::-webkit-scrollbar-thumb {
+  background: var(--color-neo-yellow);
+  border: 1.5px solid var(--color-neo-dark);
+  border-radius: 1px;
+}
+.neo-scroll-x::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neo-orange);
+}
+
+/* Custom gorgeous neobrutalist vertical scrollbar */
+.neo-scroll-y::-webkit-scrollbar {
+  width: 10px;
+}
+.neo-scroll-y::-webkit-scrollbar-track {
+  background: var(--color-neo-muted);
+  border-left: 2px solid var(--color-neo-dark);
+}
+.neo-scroll-y::-webkit-scrollbar-thumb {
+  background: var(--color-neo-dark);
+  border: 2px solid var(--color-neo-bg);
+}
+.neo-scroll-y::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neo-orange);
+}
+
+/* Custom-scrollbar styling specifically for the lists */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #FFFDF0;
+  border-left: 2px solid #0A0A0A;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #FFD700;
+  border: 2px solid #0A0A0A;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #FF6B35;
+}
