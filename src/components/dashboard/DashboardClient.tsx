@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus, Search, Globe, Lock, FolderPlus, Sparkles,
-  LineChart, BookOpenCheck, LockKeyhole, BellOff, ChevronRight
+  LineChart, BookOpenCheck, LockKeyhole, BellOff, ChevronRight, History
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { apiFetch } from "@/lib/api";
@@ -494,6 +494,7 @@ export default function DashboardClient() {
                         setAuditStartDate={setAuditStartDate}
                         auditEndDate={auditEndDate}
                         setAuditEndDate={setAuditEndDate}
+                        activeVaultId={activeVault.id}
                         loadAuditLogs={(page: number, type: string, start: string, end: string) => loadAuditLogs(activeVault.id, page, type, start, end)}
                       />
                     )}
@@ -610,53 +611,152 @@ function MembersTab({ activeVault, currentUser, inviteSearch, setInviteSearch, s
   );
 }
 
-function AuditTab({ auditLogs, auditLogsData, auditPage, setAuditPage, auditTypeFilter, setAuditTypeFilter, auditStartDate, setAuditStartDate, auditEndDate, setAuditEndDate, loadAuditLogs }: any) {
+function AuditTab({ auditLogs, auditLogsData, auditPage, setAuditPage, auditTypeFilter, setAuditTypeFilter, auditStartDate, setAuditStartDate, auditEndDate, setAuditEndDate, loadAuditLogs, activeVaultId }: any) {
   return (
-    <div className="bg-white rounded-sm border-4 border-neo-dark p-5 shadow-[4px_4px_0px_#000] space-y-4 text-left">
-      <h3 className="font-display font-black text-sm uppercase tracking-wider text-neo-dark border-b-2 border-stone-200 pb-2">Audit Trail</h3>
-      <div className="flex flex-wrap gap-3 items-end">
-        <div>
-          <label className="block text-[9px] font-bold font-mono text-stone-500 uppercase mb-1">Type Filter</label>
-          <select value={auditTypeFilter} onChange={(e) => { setAuditTypeFilter(e.target.value); loadAuditLogs(0, e.target.value, auditStartDate, auditEndDate); }} className="text-xs p-1.5 border-2 border-neo-dark rounded focus:outline-none">
-            <option value="ALL">All Types</option>
-            <option value="SOURCE_ADDED">Source Added</option>
-            <option value="ANNOTATION_ADDED">Annotation Added</option>
-            <option value="ANNOTATION_UPDATED">Annotation Updated</option>
+    <div className="bg-white rounded-sm border-4 border-neo-dark p-4 shadow-[4px_4px_0px_#000] space-y-4 text-left">
+
+      {/* Header: title + pager */}
+      <div className="flex justify-between items-center border-b-2 border-stone-200 pb-2 bg-stone-50 px-2 py-1.5 rounded border border-neo-dark flex-wrap gap-2">
+        <h3 className="font-display font-black text-xs uppercase tracking-wider text-neo-dark flex items-center gap-1.5">
+          <History className="w-4 h-4 text-rose-500 animate-[spin_4s_linear_infinite]" />
+          Vault audit chronology
+        </h3>
+
+        {/* Pager */}
+        <div className="flex bg-white rounded-sm border-2 border-neo-dark overflow-hidden shadow-[1px_1px_0px_#000] text-[9px] select-none font-bold">
+          <button
+            disabled={auditPage === 0}
+            onClick={() => {
+              const prevPage = Math.max(0, auditPage - 1);
+              setAuditPage(prevPage);
+              loadAuditLogs(prevPage, auditTypeFilter, auditStartDate, auditEndDate);
+            }}
+            className="px-2 py-0.5 border-r-2 border-neo-dark cursor-pointer hover:bg-amber-50 disabled:opacity-40"
+          >
+            ◀ <span className="hidden sm:inline">PREV</span>
+          </button>
+          <span className="px-2 py-0.5 bg-stone-50 font-mono border-r-2 border-neo-dark text-center min-w-[50px]">
+            PAGE {auditPage + 1}
+          </span>
+          <button
+            onClick={() => {
+              const nextPage = auditPage + 1;
+              setAuditPage(nextPage);
+              loadAuditLogs(nextPage, auditTypeFilter, auditStartDate, auditEndDate);
+            }}
+            className="px-2 py-0.5 cursor-pointer hover:bg-amber-50"
+          >
+            <span className="hidden sm:inline">NEXT</span> ▶
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="p-3 bg-stone-50 border-2 border-neo-dark rounded-xs shadow-[2px_2px_0px_rgba(0,0,0,1)] grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+        <div className="text-left">
+          <label className="block text-[9px] uppercase font-black font-mono text-stone-600 mb-1">Action Type</label>
+          <select
+            value={auditTypeFilter}
+            onChange={(e) => {
+              const val = e.target.value;
+              setAuditTypeFilter(val);
+              setAuditPage(0);
+              loadAuditLogs(0, val, auditStartDate, auditEndDate);
+            }}
+            className="w-full text-xs p-1.5 border-2 border-neo-dark rounded bg-white font-mono focus:outline-none cursor-pointer"
+          >
+            <option value="ALL">ALL PROCESSES</option>
+            <option value="VAULT">VAULT SECURE BOUNDS</option>
+            <option value="MEMBER">PERSONNEL & MEMBERS</option>
+            <option value="SOURCE">SOURCE RESEARCH NODES</option>
+            <option value="ANNOTATION">ANNOTATION & COMMENTS</option>
+            <option value="CITATION">CITATION FORMATS</option>
           </select>
         </div>
-        <div>
-          <label className="block text-[9px] font-bold font-mono text-stone-500 uppercase mb-1">Start Date</label>
-          <input type="date" value={auditStartDate} onChange={(e) => setAuditStartDate(e.target.value)} className="text-xs p-1.5 border-2 border-neo-dark rounded focus:outline-none" />
+
+        <div className="text-left">
+          <label className="block text-[9px] uppercase font-black font-mono text-stone-600 mb-1">From Date</label>
+          <input
+            type="date"
+            value={auditStartDate}
+            onChange={(e) => {
+              const val = e.target.value;
+              setAuditStartDate(val);
+              setAuditPage(0);
+              loadAuditLogs(0, auditTypeFilter, val, auditEndDate);
+            }}
+            className="w-full text-xs p-1 border-2 border-neo-dark rounded bg-white font-mono focus:outline-none"
+          />
         </div>
-        <div>
-          <label className="block text-[9px] font-bold font-mono text-stone-500 uppercase mb-1">End Date</label>
-          <input type="date" value={auditEndDate} onChange={(e) => setAuditEndDate(e.target.value)} className="text-xs p-1.5 border-2 border-neo-dark rounded focus:outline-none" />
+
+        <div className="text-left">
+          <label className="block text-[9px] uppercase font-black font-mono text-stone-600 mb-1">To Date</label>
+          <input
+            type="date"
+            value={auditEndDate}
+            onChange={(e) => {
+              const val = e.target.value;
+              setAuditEndDate(val);
+              setAuditPage(0);
+              loadAuditLogs(0, auditTypeFilter, auditStartDate, val);
+            }}
+            className="w-full text-xs p-1 border-2 border-neo-dark rounded bg-white font-mono focus:outline-none"
+          />
         </div>
-        <button onClick={() => loadAuditLogs(0, auditTypeFilter, auditStartDate, auditEndDate)} className="neo-btn px-3 py-1.5 text-xs">Filter</button>
+
+        <div>
+          <button
+            type="button"
+            onClick={() => {
+              setAuditTypeFilter("ALL");
+              setAuditStartDate("");
+              setAuditEndDate("");
+              setAuditPage(0);
+              loadAuditLogs(0, "ALL", "", "");
+            }}
+            className="w-full text-[10px] font-bold font-mono py-2 px-3 bg-stone-200 border-2 border-neo-dark text-neo-dark hover:bg-stone-300 rounded shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 transition-all text-center cursor-pointer uppercase"
+          >
+            Clear Filters
+          </button>
+        </div>
       </div>
-      {auditLogs.length === 0 ? (
-        <div className="text-center p-8 text-xs text-stone-400 italic font-mono bg-stone-50 border-2 border-dashed border-stone-200 rounded-sm">No audit logs found.</div>
-      ) : (
-        <div className="space-y-2 max-h-[500px] overflow-y-auto">
-          {auditLogs.map((log: any) => (
-            <div key={log.id} className="p-3 bg-stone-50 border-2 border-neo-dark rounded-sm text-xs">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-black font-mono text-neo-dark uppercase text-[10px]">{log.action}</span>
-                <span className="text-[9px] text-stone-400 font-mono">{new Date(log.createdAt).toLocaleString()}</span>
+
+      {/* Log entries */}
+      <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1 select-none text-[11px] font-mono">
+        {auditLogs.length === 0 ? (
+          <p className="text-xs text-stone-400 font-mono italic p-4 text-center">No visual audit logs indexed.</p>
+        ) : (
+          auditLogs.map((log: any) => {
+            let borderCol = "border-l-indigo-500 bg-indigo-50/10";
+            if (log.action.includes("CREATED") || log.action.includes("ADDED"))
+              borderCol = "border-l-emerald-500 bg-emerald-50/10";
+            if (log.action.includes("DELETED") || log.action.includes("REMOVED"))
+              borderCol = "border-l-rose-500 bg-rose-50/10";
+
+            return (
+              <div
+                key={log.id}
+                className={`p-2.5 border-2 border-neo-dark border-l-8 rounded-sm hover:bg-stone-50 transition-colors flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 ${borderCol}`}
+              >
+                <div className="flex flex-wrap items-center gap-2 text-left">
+                  <span className="bg-stone-100 border border-stone-300 font-bold px-1.5 py-0.5 rounded text-[8px] text-stone-600 tracking-tight">
+                    {log.action}
+                  </span>
+                  <span className="text-neo-dark font-black font-sans bg-amber-50/40 px-1 py-0.5">
+                    {log.user?.name || "Member"}:
+                  </span>
+                  <span className="text-stone-700 font-sans tracking-tight leading-none text-left">
+                    {log.details}
+                  </span>
+                </div>
+                <span className="text-[9px] text-stone-600 font-bold shrink-0 font-mono bg-stone-100 border border-stone-200 px-1.5 py-0.5 rounded shadow-[1px_1px_0px_rgba(0,0,0,0.15)]">
+                  {new Date(log.createdAt).toLocaleDateString()} &bull; {new Date(log.createdAt).toLocaleTimeString()}
+                </span>
               </div>
-              <p className="text-stone-600 font-sans">{log.details}</p>
-              <span className="text-[9px] font-mono text-stone-500 mt-1 block">By: {log.user.name}</span>
-            </div>
-          ))}
-        </div>
-      )}
-      {auditLogsData && auditLogsData.total > 20 && (
-        <div className="flex items-center justify-between pt-2 border-t-2 border-dashed border-stone-200">
-          <button onClick={() => { const newPage = Math.max(0, auditPage - 1); setAuditPage(newPage); loadAuditLogs(newPage); }} disabled={auditPage === 0} className="px-3 py-1.5 text-xs border-2 border-neo-dark rounded disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer hover:bg-stone-50">← Prev</button>
-          <span className="text-[10px] font-mono font-black text-neo-dark">Page {auditPage + 1} of {Math.ceil(auditLogsData.total / 20)}</span>
-          <button onClick={() => { const newPage = auditPage + 1; setAuditPage(newPage); loadAuditLogs(newPage); }} disabled={(auditPage + 1) * 20 >= auditLogsData.total} className="px-3 py-1.5 text-xs border-2 border-neo-dark rounded disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer hover:bg-stone-50">Next →</button>
-        </div>
-      )}
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
