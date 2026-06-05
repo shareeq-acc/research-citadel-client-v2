@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Source } from "@/types";
 import { Sparkles, Target, FlaskConical, Lightbulb, Star, AlertTriangle, Rocket, Database, ChevronDown, ChevronUp, Loader } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { sourceService } from "@/services";
 
 interface InsightsSectionProps {
   vaultId: string;
@@ -40,19 +40,11 @@ export default function InsightsSection({ vaultId, source, myRole, onSourceUpdat
     setSummarizeLoading(true);
     setError("");
     try {
-      const response = await apiFetch(`/api/vault/${vaultId}/source/${source.id}/summarize`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ length: summaryLength }),
-      });
-      const res = await response.json();
-      if (res.success) {
-        onSourceUpdated(res.data);
-      } else {
-        setError(res.message || "Failed to generate AI summary.");
-      }
-    } catch (err) {
-      setError("AI generation network barrier encountered.");
+      const res = await sourceService.summarize(vaultId, source.id, { length: summaryLength });
+      if (res.success) onSourceUpdated(res.data);
+      else setError(res.message || "Failed to generate AI summary.");
+    } catch (err: any) {
+      setError(err?.message || "AI generation network error.");
     } finally {
       setSummarizeLoading(false);
     }
@@ -62,28 +54,15 @@ export default function InsightsSection({ vaultId, source, myRole, onSourceUpdat
     setInsightsLoading(true);
     setError("");
     try {
-      const response = await apiFetch(`/api/vault/${vaultId}/source/${source.id}/extract-insights`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      const res = await response.json();
+      const res = await sourceService.extractInsights(vaultId, source.id);
       if (res.success) {
         onSourceUpdated(res.data);
-        // Expand all blocks for user convenience
-        setOpenBlocks({
-          problem: true,
-          methodology: true,
-          findings: true,
-          contributions: true,
-          limitations: true,
-          future: true,
-          datasets: true,
-        });
+        setOpenBlocks({ problem: true, methodology: true, findings: true, contributions: true, limitations: true, future: true, datasets: true });
       } else {
         setError(res.message || "Failed to query specialized AI insights.");
       }
-    } catch (err) {
-      setError("AI Extraction network barrier encountered.");
+    } catch (err: any) {
+      setError(err?.message || "AI Extraction network error.");
     } finally {
       setInsightsLoading(false);
     }

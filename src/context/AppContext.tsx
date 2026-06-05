@@ -1,8 +1,45 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+} from "react";
 import { User, Vault, Source, Annotation, AuditLog } from "@/types";
-import { apiFetch } from "@/lib/api";
+import { authService, userService, vaultService, sourceService } from "@/services";
+import type { AuditLogsQuery } from "@/services/vault.service";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Generates 84 heatmap cells (12 weeks × 7 days) from audit log timestamps.
+ * Day 0 = today, working backwards.
+ */
+function buildHeatmap(
+  logs: AuditLog[],
+): Array<{ date: string; count: number }> {
+  const CELLS = 84;
+  const countByDate = new Map<string, number>();
+  for (const log of logs) {
+    const d = new Date(log.createdAt);
+    const key = d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    countByDate.set(key, (countByDate.get(key) ?? 0) + 1);
+  }
+
+  const cells: Array<{ date: string; count: number }> = [];
+  const today = new Date();
+  for (let i = CELLS - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    cells.push({ date: key, count: countByDate.get(key) ?? 0 });
+  }
+  return cells;
+}
+
+// ── Context interface ──────────────────────────────────────────────────────────
 
 interface AppContextValue {
   // Auth
@@ -34,7 +71,7 @@ interface AppContextValue {
   // Audit
   auditLogs: AuditLog[];
   setAuditLogs: React.Dispatch<React.SetStateAction<AuditLog[]>>;
-  auditLogsData: any;
+  auditLogsData: { total: number; graph: Array<{ date: string; count: number }> } | null;
   auditPage: number;
   setAuditPage: (p: number) => void;
   auditTypeFilter: string;
@@ -43,9 +80,15 @@ interface AppContextValue {
   setAuditStartDate: (v: string) => void;
   auditEndDate: string;
   setAuditEndDate: (v: string) => void;
-  loadAuditLogs: (vid: string, pageOverride?: number, typeOverride?: string, startOverride?: string, endOverride?: string) => Promise<void>;
+  loadAuditLogs: (
+    vid: string,
+    pageOverride?: number,
+    typeOverride?: string,
+    startOverride?: string,
+    endOverride?: string,
+  ) => Promise<void>;
 
-  // Vault search/filter
+  // Vault search / filter
   vaultSearchQuery: string;
   setVaultSearchQuery: (v: string) => void;
   mutedVaults: Record<string, boolean>;
@@ -70,15 +113,23 @@ interface AppContextValue {
   profileAvatarColor: string;
   setProfileAvatarColor: (v: string) => void;
   profileAvatarEye: "sunglasses" | "glasses" | "cute" | "focus";
-  setProfileAvatarEye: (v: "sunglasses" | "glasses" | "cute" | "focus") => void;
+  setProfileAvatarEye: (
+    v: "sunglasses" | "glasses" | "cute" | "focus",
+  ) => void;
 }
+
+// ── Context creation ───────────────────────────────────────────────────────────
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+// ── Provider ───────────────────────────────────────────────────────────────────
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  // ── Auth state ─────────────────────────────────────────────────────────────
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
+  // ── Domain state ───────────────────────────────────────────────────────────
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [activeVault, setActiveVault] = useState<Vault | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
@@ -86,36 +137,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [activeAnnotation, setActiveAnnotation] = useState<Annotation | null>(null);
 
+  // ── Audit state ────────────────────────────────────────────────────────────
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [auditLogsData, setAuditLogsData] = useState<any>(null);
+  const [auditLogsData, setAuditLogsData] = useState<{
+    total: number;
+    graph: Array<{ date: string; count: number }>;
+  } | null>(null);
   const [auditPage, setAuditPage] = useState(0);
   const [auditTypeFilter, setAuditTypeFilter] = useState("ALL");
   const [auditStartDate, setAuditStartDate] = useState("");
   const [auditEndDate, setAuditEndDate] = useState("");
 
+  // ── UI state ───────────────────────────────────────────────────────────────
   const [vaultSearchQuery, setVaultSearchQuery] = useState("");
   const [mutedVaults, setMutedVaults] = useState<Record<string, boolean>>(() => {
     if (typeof window === "undefined") return {};
     try {
       const saved = localStorage.getItem("mutedVaults");
       return saved ? JSON.parse(saved) : {};
-    } catch { return {}; }
+    } catch {
+      return {};
+    }
   });
 
-  // Profile avatar states
+  // ── Avatar state ───────────────────────────────────────────────────────────
   const [profileAvatarType, setProfileAvatarType] = useState<"vector" | "presets" | "upload">("presets");
   const [profileAvatarGender, setProfileAvatarGender] = useState<"femme" | "masc">("femme");
   const [profileAvatarHair, setProfileAvatarHair] = useState("long-bob");
   const [profileAvatarBg, setProfileAvatarBg] = useState("#38BDF8");
   const [profileAvatarSkin, setProfileAvatarSkin] = useState("#FFF4F2");
   const [profileAvatarColor, setProfileAvatarColor] = useState("#FACC15");
-  const [profileAvatarEye, setProfileAvatarEye] = useState<"sunglasses" | "glasses" | "cute" | "focus">("sunglasses");
+  const [profileAvatarEye, setProfileAvatarEye] = useState<
+    "sunglasses" | "glasses" | "cute" | "focus"
+  >("sunglasses");
   const [profilePresetAvatar, setProfilePresetAvatar] = useState("");
   const [profileUploadedAvatar, setProfileUploadedAvatar] = useState("");
 
   const computedProfileAvatar = useMemo(() => {
     if (profileAvatarType === "presets") {
-      return profilePresetAvatar || "https://api.dicebear.com/7.x/pixel-art/svg?seed=SeerIjj";
+      return (
+        profilePresetAvatar ||
+        "https://api.dicebear.com/7.x/pixel-art/svg?seed=SeerIjj"
+      );
     }
     if (profileAvatarType === "upload") {
       return profileUploadedAvatar || "";
@@ -130,171 +193,244 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       accessory: "none",
     };
     return "custom-avatar::" + JSON.stringify(specs);
-  }, [profileAvatarType, profilePresetAvatar, profileUploadedAvatar, profileAvatarGender, profileAvatarBg, profileAvatarSkin, profileAvatarColor, profileAvatarHair, profileAvatarEye]);
+  }, [
+    profileAvatarType,
+    profilePresetAvatar,
+    profileUploadedAvatar,
+    profileAvatarGender,
+    profileAvatarBg,
+    profileAvatarSkin,
+    profileAvatarColor,
+    profileAvatarHair,
+    profileAvatarEye,
+  ]);
 
-  // Sync avatar from user on login
+  // Sync avatar from user profile when user logs in
   useEffect(() => {
-    if (currentUser) {
-      const avatarStr = currentUser.avatar;
-      if (avatarStr && avatarStr.startsWith("custom-avatar::")) {
-        setProfileAvatarType("vector");
-        try {
-          const parsed = JSON.parse(avatarStr.slice("custom-avatar::".length));
-          setProfileAvatarGender(parsed.gender || "femme");
-          setProfileAvatarBg(parsed.bg || "#38BDF8");
-          setProfileAvatarEye(parsed.eye || "sunglasses");
-          setProfileAvatarHair(parsed.hair || "long-bob");
-          setProfileAvatarColor(parsed.hairColor || "#FACC15");
-          setProfileAvatarSkin(parsed.skinColor || "#FFF4F2");
-        } catch { /* ignore */ }
-      } else if (avatarStr && avatarStr.startsWith("data:image")) {
-        setProfileAvatarType("upload");
-        setProfileUploadedAvatar(avatarStr);
-      } else if (avatarStr) {
-        setProfileAvatarType("presets");
-        setProfilePresetAvatar(avatarStr);
-      } else {
-        setProfileAvatarType("presets");
-        setProfilePresetAvatar("https://api.dicebear.com/7.x/pixel-art/svg?seed=SeerIjj");
+    if (!currentUser) return;
+    const avatarStr = currentUser.avatar;
+    if (avatarStr?.startsWith("custom-avatar::")) {
+      setProfileAvatarType("vector");
+      try {
+        const parsed = JSON.parse(avatarStr.slice("custom-avatar::".length));
+        setProfileAvatarGender(parsed.gender ?? "femme");
+        setProfileAvatarBg(parsed.bg ?? "#38BDF8");
+        setProfileAvatarEye(parsed.eye ?? "sunglasses");
+        setProfileAvatarHair(parsed.hair ?? "long-bob");
+        setProfileAvatarColor(parsed.hairColor ?? "#FACC15");
+        setProfileAvatarSkin(parsed.skinColor ?? "#FFF4F2");
+      } catch {
+        /* ignore malformed avatar string */
       }
+    } else if (avatarStr?.startsWith("data:image")) {
+      setProfileAvatarType("upload");
+      setProfileUploadedAvatar(avatarStr);
+    } else if (avatarStr) {
+      setProfileAvatarType("presets");
+      setProfilePresetAvatar(avatarStr);
+    } else {
+      setProfileAvatarType("presets");
+      setProfilePresetAvatar(
+        "https://api.dicebear.com/7.x/pixel-art/svg?seed=SeerIjj",
+      );
     }
   }, [currentUser?.id]);
 
-  // Initial auth check
+  // ── Session rehydration ────────────────────────────────────────────────────
+
   useEffect(() => {
     async function rehydrateUser() {
       try {
-        const response = await apiFetch("/api/user/me");
-        const res = await response.json();
+        const res = await userService.getMe();
         if (res.success && res.data) {
           setCurrentUser(res.data);
-          localStorage.setItem("cid_uid_storage", res.data.id);
           loadVaultList();
         }
-      } catch { /* not authenticated */ } finally {
+      } catch {
+        // Not authenticated — silently ignore
+      } finally {
         setCheckingAuth(false);
       }
     }
     rehydrateUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── Auth actions ───────────────────────────────────────────────────────────
 
   const handleLogout = async () => {
     try {
-      await apiFetch("/api/auth/logout", { method: "POST" });
+      await authService.logout();
+    } catch {
+      // Ignore server errors — always clear client state
+    } finally {
       localStorage.removeItem("cid_uid_storage");
       setCurrentUser(null);
       setVaults([]);
       setActiveVault(null);
       setActiveSource(null);
-    } catch (err) {
-      console.error(err);
+      setSources([]);
+      setAnnotations([]);
     }
   };
+
+  // ── Vault actions ──────────────────────────────────────────────────────────
 
   const loadAuditLogs = async (
     vid: string,
     pageOverride?: number,
     typeOverride?: string,
-    startOverride?: string,
-    endOverride?: string
+    _startOverride?: string,
+    _endOverride?: string,
   ) => {
     try {
-      const page = pageOverride !== undefined ? pageOverride : auditPage;
-      const type = typeOverride !== undefined ? typeOverride : auditTypeFilter;
-      const start = startOverride !== undefined ? startOverride : auditStartDate;
-      const end = endOverride !== undefined ? endOverride : auditEndDate;
+      const query: AuditLogsQuery = {
+        limit: 20,
+        offset: (pageOverride ?? auditPage) * 20,
+        // server uses "action" param; pass undefined if "ALL"
+        action: typeOverride ?? auditTypeFilter,
+      };
 
-      let url = `/api/vault/${vid}/audit?limit=20&offset=${page * 20}`;
-      if (type && type !== "ALL") url += `&type=${encodeURIComponent(type)}`;
-      if (start) url += `&startDate=${encodeURIComponent(start)}`;
-      if (end) url += `&endDate=${encodeURIComponent(end)}`;
-
-      const response = await apiFetch(url);
-      const data = await response.json();
-      if (data.success) {
-        setAuditLogs(data.data);
-        setAuditLogsData(data);
+      const res = await vaultService.getAuditLogs(vid, query);
+      if (res.success) {
+        // Server returns a flat AuditLog[]
+        const logs = (res.data as unknown as AuditLog[]) ?? [];
+        setAuditLogs(logs);
+        // Build heatmap from audit log timestamps (84 cells = 12 weeks × 7 days)
+        setAuditLogsData({ total: logs.length, graph: buildHeatmap(logs) });
       }
     } catch (err) {
-      console.error(err);
+      console.error("[AppContext] loadAuditLogs failed", err);
     }
   };
 
   const loadVaultList = async (idToActivate?: string) => {
     try {
-      const response = await apiFetch("/api/vault");
-      const data = await response.json();
-      if (data.success) {
-        setVaults(data.data);
-        let targetId = idToActivate;
-        if (!targetId && activeVault) targetId = activeVault.id;
-        if (!targetId && data.data.length > 0) targetId = data.data[0].id;
+      const res = await vaultService.listVaults();
+      if (!res.success) return;
 
-        if (targetId) {
-          const found = data.data.find((v: Vault) => v.id === targetId);
-          if (found) {
-            setActiveVault(found);
-            const sourcesResponse = await apiFetch(`/api/vault/${targetId}/source`);
-            const srcData = await sourcesResponse.json();
-            if (srcData.success) setSources(srcData.data.sources);
-            loadAuditLogs(targetId);
-          }
+      setVaults(res.data);
+
+      const targetId =
+        idToActivate ?? activeVault?.id ?? res.data[0]?.id;
+
+      if (targetId) {
+        const found = res.data.find((v: Vault) => v.id === targetId);
+        if (found) {
+          setActiveVault(found);
+          const srcRes = await sourceService.listSources(targetId);
+          if (srcRes.success) setSources(srcRes.data.sources);
+          loadAuditLogs(targetId);
         }
       }
     } catch (err) {
-      console.error(err);
+      console.error("[AppContext] loadVaultList failed", err);
     }
   };
 
   const loadVaultDetail = async (id: string) => {
     try {
-      const response = await apiFetch(`/api/vault/${id}`);
-      const data = await response.json();
-      if (data.success) {
-        setActiveVault(data.data);
-        setSources([]);
-        const sourcesResponse = await apiFetch(`/api/vault/${id}/source`);
-        const srcData = await sourcesResponse.json();
-        if (srcData.success) setSources(srcData.data.sources);
-        loadAuditLogs(id);
-      }
+      const [vaultRes, srcRes] = await Promise.all([
+        vaultService.getVault(id),
+        sourceService.listSources(id),
+      ]);
+
+      if (vaultRes.success) setActiveVault(vaultRes.data);
+      setSources([]);
+      if (srcRes.success) setSources(srcRes.data.sources);
+
+      loadAuditLogs(id);
     } catch (err) {
-      console.error(err);
+      console.error("[AppContext] loadVaultDetail failed", err);
     }
   };
+
+  // ── UI helpers ─────────────────────────────────────────────────────────────
 
   const handleMuteVaultToggle = (vaultId: string) => {
     setMutedVaults((prev) => {
       const updated = { ...prev, [vaultId]: !prev[vaultId] };
-      try { localStorage.setItem("mutedVaults", JSON.stringify(updated)); } catch { /* ignore */ }
+      try {
+        localStorage.setItem("mutedVaults", JSON.stringify(updated));
+      } catch {
+        /* ignore */
+      }
       return updated;
     });
   };
 
+  // ── Context value ──────────────────────────────────────────────────────────
+
   return (
-    <AppContext.Provider value={{
-      currentUser, setCurrentUser, checkingAuth, handleLogout,
-      vaults, setVaults, activeVault, setActiveVault, loadVaultList, loadVaultDetail,
-      sources, setSources, activeSource, setActiveSource,
-      annotations, setAnnotations, activeAnnotation, setActiveAnnotation,
-      auditLogs, setAuditLogs, auditLogsData, auditPage, setAuditPage,
-      auditTypeFilter, setAuditTypeFilter, auditStartDate, setAuditStartDate,
-      auditEndDate, setAuditEndDate, loadAuditLogs,
-      vaultSearchQuery, setVaultSearchQuery, mutedVaults, handleMuteVaultToggle,
-      computedProfileAvatar, profileAvatarType, setProfileAvatarType,
-      profilePresetAvatar, setProfilePresetAvatar,
-      profileUploadedAvatar, setProfileUploadedAvatar,
-      profileAvatarGender, setProfileAvatarGender,
-      profileAvatarHair, setProfileAvatarHair,
-      profileAvatarBg, setProfileAvatarBg,
-      profileAvatarSkin, setProfileAvatarSkin,
-      profileAvatarColor, setProfileAvatarColor,
-      profileAvatarEye, setProfileAvatarEye,
-    }}>
+    <AppContext.Provider
+      value={{
+        currentUser,
+        setCurrentUser,
+        checkingAuth,
+        handleLogout,
+
+        vaults,
+        setVaults,
+        activeVault,
+        setActiveVault,
+        loadVaultList,
+        loadVaultDetail,
+
+        sources,
+        setSources,
+        activeSource,
+        setActiveSource,
+
+        annotations,
+        setAnnotations,
+        activeAnnotation,
+        setActiveAnnotation,
+
+        auditLogs,
+        setAuditLogs,
+        auditLogsData,
+        auditPage,
+        setAuditPage,
+        auditTypeFilter,
+        setAuditTypeFilter,
+        auditStartDate,
+        setAuditStartDate,
+        auditEndDate,
+        setAuditEndDate,
+        loadAuditLogs,
+
+        vaultSearchQuery,
+        setVaultSearchQuery,
+        mutedVaults,
+        handleMuteVaultToggle,
+
+        computedProfileAvatar,
+        profileAvatarType,
+        setProfileAvatarType,
+        profilePresetAvatar,
+        setProfilePresetAvatar,
+        profileUploadedAvatar,
+        setProfileUploadedAvatar,
+        profileAvatarGender,
+        setProfileAvatarGender,
+        profileAvatarHair,
+        setProfileAvatarHair,
+        profileAvatarBg,
+        setProfileAvatarBg,
+        profileAvatarSkin,
+        setProfileAvatarSkin,
+        profileAvatarColor,
+        setProfileAvatarColor,
+        profileAvatarEye,
+        setProfileAvatarEye,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );
 }
+
+// ── Hook ───────────────────────────────────────────────────────────────────────
 
 export function useApp() {
   const ctx = useContext(AppContext);

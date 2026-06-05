@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Source } from "@/types";
 import { Plus, Search, FileText, Globe, Calendar, User, BookOpen, AlertCircle, Upload, Link, Lock } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { sourceService } from "@/services";
 
 interface SourcesTabProps {
   vaultId: string;
@@ -89,28 +89,24 @@ export default function SourcesTab({ vaultId, myRole, sources, onSourceAdded }: 
     }
 
     try {
-      const response = await apiFetch(`/api/vault/${vaultId}/source`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const res = await sourceService.createSource(vaultId, {
+        title,
+        authors: authors ? authors.split(",").map((a) => a.trim()) : ["Unknown"],
+        publication: publication || undefined,
+        year: year ? parseInt(year) : undefined,
+        sourceType: addType,
+        externalUrl: addType === "WEB_ARTICLE" ? externalUrl : undefined,
       });
 
-      const res = await response.json();
       if (res.success) {
         onSourceAdded(res.data);
         setShowAddModal(false);
-        // Reset state
-        setTitle("");
-        setAuthors("");
-        setPublication("");
-        setYear("");
-        setExternalUrl("");
-        setPdfFileName("");
+        setTitle(""); setAuthors(""); setPublication(""); setYear(""); setExternalUrl(""); setPdfFileName("");
       } else {
         setError(res.message || "Failed to add source parameters.");
       }
-    } catch (err) {
-      setError("Network bottleneck occurred while index updates.");
+    } catch (err: any) {
+      setError(err?.message || "Network error while adding source.");
     } finally {
       setLoading(false);
     }

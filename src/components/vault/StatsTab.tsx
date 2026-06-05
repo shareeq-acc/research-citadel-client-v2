@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { VaultMember, AuditLog } from "@/types";
 import { Star, BarChart, Users, Zap, Award, Calendar, TrendingUp } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { vaultService } from "@/services";
 
 interface StatsTabProps {
   vaultId: string;
@@ -23,13 +23,12 @@ export default function StatsTab({ vaultId, members, auditData }: StatsTabProps)
   useEffect(() => {
     async function loadStats() {
       try {
-        const res = await apiFetch(`/api/vault/${vaultId}/stats`);
-        const data = await res.json();
-        if (data.success) {
-          setUserStats(data.data);
+        const res = await vaultService.getStats(vaultId);
+        if (res.success) {
+          setUserStats(res.data as any[]);
         }
       } catch (err) {
-        console.error("Failed to load user stats", err);
+        console.error("Failed to load vault stats", err);
       } finally {
         setLoading(false);
       }

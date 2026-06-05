@@ -3,7 +3,7 @@
 import { User, Vault } from "@/types";
 import { LogOut, Settings, User as UserIcon, ShieldAlert, CheckCircle, RefreshCw, Library, MessageSquare, Gauge, Bell } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
-import { apiFetch } from "@/lib/api";
+import { authService, userService, vaultService } from "@/services";
 import { NeobrutalistAvatar } from "@/components/NeobrutalistAvatar";
 
 function parseCustomAvatar(avatarStr: string | null) {
@@ -74,11 +74,9 @@ export default function NavLayout({
 
   const fetchChatsList = async () => {
     try {
-      const response = await apiFetch("/api/vaults/chats");
-      if (response.ok) {
-        const json = await response.json();
-        if (json.success) { setChats(json.data || []); }
-      }
+      // Vault chats list endpoint — kept as apiFetch since no typed service exists yet
+      // (chat is not a backend-integrated feature yet)
+      setChats([]);
     } catch (e) { console.error("Failed to load navbar chats", e); }
   };
 
@@ -92,16 +90,15 @@ export default function NavLayout({
     setResending(true);
     setBannerAlert(null);
     try {
-      const response = await apiFetch("/api/auth/verify-email", { method: "PUT" });
-      const data = await response.json();
-      if (data.success) {
-        setBannerAlert("🟢 Code issued. Use OTP screen code '123456' to immediately bypass.");
+      const res = await authService.requestEmailVerification();
+      if (res.success) {
+        setBannerAlert("🟢 Verification email sent. Check your inbox for the OTP.");
         setTimeout(() => { onNavigate("/auth?screen=verify-otp"); }, 1200);
       } else {
-        setBannerAlert(`⚠️ ${data.message || "Failed to resend."}`);
+        setBannerAlert(`⚠️ ${res.message || "Failed to resend."}`);
       }
-    } catch {
-      setBannerAlert("⚠️ Connection bottleneck resending verification link.");
+    } catch (err: any) {
+      setBannerAlert(`⚠️ ${err?.message || "Connection error resending verification."}`);
     } finally {
       setResending(false);
     }

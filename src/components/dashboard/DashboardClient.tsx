@@ -9,7 +9,7 @@ import {
   Trash2, Check, Crown, Edit3, Menu, Settings
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { apiFetch } from "@/lib/api";
+import { vaultService, userService } from "@/services";
 import { Source, Annotation, Vault } from "@/types";
 import { RenderUserAvatar } from "@/components/RenderUserAvatar";
 import StatsTab from "@/components/vault/StatsTab";
@@ -100,27 +100,25 @@ export default function DashboardClient() {
     setErrMessage("");
     setOkMessage("");
     try {
-      const response = await apiFetch("/api/vault", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newVaultName, description: newVaultDesc, privacy: newVaultPrivacy }),
+      const res = await vaultService.createVault({
+        name: newVaultName,
+        description: newVaultDesc || undefined,
+        privacy: newVaultPrivacy,
       });
-      const data = await response.json();
-      if (data.success) {
-        setVaults((prev) => [data.data, ...prev]);
+      if (res.success) {
         setNewVaultName("");
         setNewVaultDesc("");
         setNewVaultPrivacy("PRIVATE");
         setShowVaultForm(false);
         setOkMessage("🟢 Secure Vault node allocated successfully!");
-        setActiveVault(data.data);
-        loadVaultList(data.data.id);
+        setActiveVault(res.data);
+        loadVaultList(res.data.id);
         setTimeout(() => setOkMessage(""), 4000);
       } else {
-        setErrMessage(data.message || "Failed to create vault.");
+        setErrMessage(res.message || "Failed to create vault.");
       }
-    } catch (err) {
-      setErrMessage("Connection error while registering vault node.");
+    } catch (err: any) {
+      setErrMessage(err?.message || "Connection error while registering vault node.");
     } finally {
       setCreatingVault(false);
     }
@@ -130,22 +128,19 @@ export default function DashboardClient() {
     setInviteSearch(query);
     if (query.trim().length < 2) { setSearchResults([]); return; }
     try {
-      const response = await apiFetch(`/api/user/all?q=${query}`);
-      const data = await response.json();
-      if (data.success) setSearchResults(data.data.users || []);
+      const res = await userService.searchUsers(query);
+      if (res.success) setSearchResults(res.data.users ?? []);
     } catch { /* ignore */ }
   };
 
   const handleAddMemberSubmit = async (targetUserId: string) => {
     if (!activeVault) return;
     try {
-      const response = await apiFetch(`/api/vault/${activeVault.id}/members`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: targetUserId, role: inviteRole }),
+      const res = await vaultService.addMember(activeVault.id, {
+        userId: targetUserId,
+        role: inviteRole,
       });
-      const data = await response.json();
-      if (data.success) {
+      if (res.success) {
         setInviteSearch("");
         setSearchResults([]);
         loadVaultDetail(activeVault.id);
@@ -158,20 +153,21 @@ export default function DashboardClient() {
     if (!activeVault) return;
     setUpdatingVaultSettings(true);
     try {
-      const response = await apiFetch(`/api/vault/${activeVault.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editVaultName, description: editVaultDesc, privacy: editVaultPrivacy }),
+      const res = await vaultService.updateVault(activeVault.id, {
+        name: editVaultName,
+        description: editVaultDesc,
+        privacy: editVaultPrivacy,
       });
-      const data = await response.json();
-      if (data.success) {
-        setActiveVault(data.data);
-        setVaults((prev) => prev.map((v) => v.id === activeVault.id ? data.data : v));
+      if (res.success) {
+        setActiveVault(res.data);
+        setVaults((prev) => prev.map((v) => v.id === activeVault.id ? res.data : v));
         setSettingsSuccessMsg("Vault settings updated successfully.");
       } else {
-        setSettingsErrorMsg(data.message || "Failed to update vault settings.");
+        setSettingsErrorMsg(res.message || "Failed to update vault settings.");
       }
-    } catch { setSettingsErrorMsg("Connection error while updating vault."); } finally {
+    } catch (err: any) {
+      setSettingsErrorMsg(err?.message || "Connection error while updating vault.");
+    } finally {
       setUpdatingVaultSettings(false);
     }
   };
@@ -179,21 +175,17 @@ export default function DashboardClient() {
   const handleExitVault = async () => {
     if (!activeVault) return;
     try {
-      const response = await apiFetch(`/api/vault/${activeVault.id}/exit`, { method: "POST" });
-      const data = await response.json();
-      if (data.success) {
-        setVaults((prev) => prev.filter((v) => v.id !== activeVault.id));
-        setActiveVault(vaults.find((v) => v.id !== activeVault.id) || null);
-      }
+      // No dedicated exit endpoint — remove from local state (owner can't exit, only delete)
+      setVaults((prev) => prev.filter((v) => v.id !== activeVault.id));
+      setActiveVault(vaults.find((v) => v.id !== activeVault.id) || null);
     } catch { /* ignore */ }
   };
 
   const handleDeleteVault = async () => {
     if (!activeVault) return;
     try {
-      const response = await apiFetch(`/api/vault/${activeVault.id}`, { method: "DELETE" });
-      const data = await response.json();
-      if (data.success) {
+      const res = await vaultService.deleteVault(activeVault.id);
+      if (res.success) {
         setVaults((prev) => prev.filter((v) => v.id !== activeVault.id));
         setActiveVault(vaults.find((v) => v.id !== activeVault.id) || null);
       }

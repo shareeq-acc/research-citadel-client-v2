@@ -1,17 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import LandingPage from "@/components/landing/LandingPage";
-import { useApp } from "@/context/AppContext";
-import { useRouter } from "next/navigation";
-
-export default function LandingRoute() {
-  const { currentUser } = useApp();
-  const router = useRouter();
-
-  return (
-    <LandingPage
-      currentUser={currentUser}
-      onNavigate={(path) => router.push(path)}
-    />
-  );
+export default function LandingRedirect() {
+  redirect("/");
 }

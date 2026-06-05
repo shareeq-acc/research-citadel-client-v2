@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MessageSquare, Send, Sparkles, Trash2, ArrowUpRight, BookOpen, ChevronLeft, ChevronRight, Filter, Loader2, SlidersHorizontal } from "lucide-react";
 import { Source } from "@/types";
-import { apiFetch } from "@/lib/api";
+import { vaultService } from "@/services";
 import MarkdownRenderer from "@/components/shared/MarkdownRenderer";
 
 interface Message {
@@ -56,23 +56,17 @@ export default function QAPanel({ vaultId, sources }: QAPanelProps) {
     setLoading(true);
 
     try {
-      const response = await apiFetch(`/api/vault/${vaultId}/ask`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: textToSend,
-          sourceIds: selectedSources,
-        }),
+      const res = await vaultService.ask(vaultId, {
+        question: textToSend,
+        sourceIds: selectedSources.length > 0 ? selectedSources : undefined,
       });
-
-      const resData = await response.json();
-      if (resData.success) {
+      if (res.success) {
         const aiMsg: Message = {
           id: `ai-${Date.now()}`,
           sender: "ai",
-          text: resData.data.answer,
-          sources: resData.data.sources,
-          chunksUsed: resData.data.chunksUsed,
+          text: res.data.answer,
+          sources: res.data.sources,
+          chunksUsed: res.data.chunksUsed,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         };
         setMessages((prev) => [...prev, aiMsg]);
@@ -80,12 +74,12 @@ export default function QAPanel({ vaultId, sources }: QAPanelProps) {
         const errMsg: Message = {
           id: `ai-err-${Date.now()}`,
           sender: "ai",
-          text: `⚠️ Error: ${resData.message || "Failed to fetch response."}`,
+          text: `⚠️ Error: ${res.message || "Failed to fetch response."}`,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         };
         setMessages((prev) => [...prev, errMsg]);
       }
-    } catch (err) {
+    } catch (err: any) {
       const errMsg: Message = {
         id: `ai-err-${Date.now()}`,
         sender: "ai",

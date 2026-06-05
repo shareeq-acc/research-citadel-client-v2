@@ -6,7 +6,7 @@ import {
   Plus, BookOpen, Clock, Edit3, Trash2, Eye, StickyNote, 
   Search, SlidersHorizontal, X, ArrowUpDown, UserCheck, ChevronLeft, ChevronRight
 } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { annotationService } from "@/services";
 
 interface AnnotationsSectionProps {
   vaultId: string;
@@ -50,13 +50,8 @@ export default function AnnotationsSection({
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this annotation?")) return;
     try {
-      const response = await apiFetch(`/api/vault/${vaultId}/source/${sourceId}/annotation/${id}`, {
-        method: "DELETE",
-      });
-      const res = await response.json();
-      if (res.success) {
-        onAnnotationDeleted(id);
-      }
+      const res = await annotationService.deleteAnnotation(vaultId, sourceId, id);
+      if (res.success) onAnnotationDeleted(id);
     } catch (err) {
       console.error(err);
     }
