@@ -32,6 +32,8 @@ interface SourceDetailPageProps {
   handleOpenEditAnnotationWorkspace: (ann: Annotation) => void;
   generateOnTheFlyCitationValue: (source: Source, fmt: "APA" | "MLA" | "CHICAGO" | "BIBTEX" | "IEEE") => string;
   handleCopyCitationText: (text: string) => void;
+  // Next.js navigation override — when provided, used instead of setCurrentScreen
+  onNavigateToAnnotationDetail?: (ann: Annotation) => void;
 }
 
 export const SourceDetailPage: React.FC<SourceDetailPageProps> = ({
@@ -58,6 +60,7 @@ export const SourceDetailPage: React.FC<SourceDetailPageProps> = ({
   handleOpenEditAnnotationWorkspace,
   generateOnTheFlyCitationValue,
   handleCopyCitationText,
+  onNavigateToAnnotationDetail,
 }) => {
   const truncateText = (str: string, maxLen: number = 22) => {
     if (!str) return "";
@@ -210,7 +213,11 @@ export const SourceDetailPage: React.FC<SourceDetailPageProps> = ({
                 const matched = annotations.find((a) => a.id === annId);
                 if (matched) {
                   setActiveAnnotation(matched);
-                  setCurrentScreen("annotation-detail");
+                  if (onNavigateToAnnotationDetail) {
+                    onNavigateToAnnotationDetail(matched);
+                  } else {
+                    setCurrentScreen("annotation-detail");
+                  }
                 }
               }}
               onTriggerAddAnnotation={handleOpenAddAnnotationWorkspace}

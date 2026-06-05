@@ -134,10 +134,9 @@ export default function SourceDetailRoute() {
       setActiveSource={setSource}
       setAnnotations={setAnnotations}
       setActiveAnnotation={setActiveAnnotation}
-      setCurrentScreen={(screen) => {
-        if (screen === "annotation-detail") {
-          /* handled via onNavigateToDetail in AnnotationsSection */
-        }
+      setCurrentScreen={() => { /* handled by onNavigateToAnnotationDetail */ }}
+      onNavigateToAnnotationDetail={(ann) => {
+        router.push(`/annotation/${vaultId}/${sourceId}/${ann.id}`);
       }}
       handleOpenAddAnnotationWorkspace={() => {
         router.push(`/annotation-workspace/${vaultId}/${sourceId}`);
