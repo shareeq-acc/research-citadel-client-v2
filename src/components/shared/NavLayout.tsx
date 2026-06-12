@@ -2,9 +2,13 @@
 
 import { User, Vault } from "@/types";
 import { LogOut, Settings, User as UserIcon, ShieldAlert, CheckCircle, RefreshCw, Library, MessageSquare, Gauge, Bell } from "lucide-react";
-import React, { useState, useRef, useEffect } from "react";
-import { authService, userService, vaultService } from "@/services";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { io, Socket } from "socket.io-client";
+import { authService, userService, vaultService, chatService } from "@/services";
 import { NeobrutalistAvatar } from "@/components/NeobrutalistAvatar";
+
+const WS_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:8000";
+const WS_NS  = "/collaboration";
 
 function parseCustomAvatar(avatarStr: string | null) {
   if (avatarStr && avatarStr.startsWith("custom-avatar::")) {
@@ -72,19 +76,95 @@ export default function NavLayout({
   const [resending, setResending] = useState(false);
   const [bannerAlert, setBannerAlert] = useState<string | null>(null);
 
-  const fetchChatsList = async () => {
-    try {
-      // Vault chats list endpoint — kept as apiFetch since no typed service exists yet
-      // (chat is not a backend-integrated feature yet)
-      setChats([]);
-    } catch (e) { console.error("Failed to load navbar chats", e); }
-  };
+  // ── Live chat updates via Socket.IO ────────────────────────────────────────
+  const socketRef    = useRef<Socket | null>(null);
+  const vaultIdsRef  = useRef<string[]>([]);
 
-  React.useEffect(() => {
-    fetchChatsList();
-    const interval = setInterval(fetchChatsList, 3000);
-    return () => clearInterval(interval);
+  // Fetch all vault chats and compute unread counts
+  const fetchChats = useCallback(async () => {
+    try {
+      const vaultsRes = await vaultService.listVaults();
+      if (!vaultsRes.success) return;
+
+      const vaultList = vaultsRes.data ?? [];
+      vaultIdsRef.current = vaultList.map((v: any) => v.id);
+
+      const results = await Promise.all(
+        vaultList.map(async (v: any) => {
+          try {
+            const msgRes = await chatService.getMessages(v.id, { limit: 1 });
+            const latest = msgRes.success && msgRes.data.length > 0 ? msgRes.data[msgRes.data.length - 1] : null;
+            return {
+              vaultId: v.id,
+              vaultName: v.name,
+              lastMessageText: latest?.content ?? "No messages yet.",
+              lastMessageUser: latest?.sender?.name ?? null,
+              lastMessageTime: latest?.createdAt ?? v.createdAt,
+              unreadCount: 0, // server marks as read on fetch; badge shows live increments
+            };
+          } catch { return null; }
+        })
+      );
+
+      setChats(results.filter(Boolean) as any[]);
+    } catch { /* ignore */ }
   }, []);
+
+  // Track per-vault unread counts driven by socket events
+  const [unreadByVault, setUnreadByVault] = useState<Record<string, number>>({});
+  const totalUnread = Object.values(unreadByVault).reduce((s, n) => s + n, 0);
+
+  useEffect(() => {
+    fetchChats();
+  }, [fetchChats]);
+
+  // Connect socket and join all vault rooms
+  useEffect(() => {
+    const socket = io(`${WS_URL}${WS_NS}`, {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+    });
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      // Join every vault room so we receive chat:message events
+      vaultIdsRef.current.forEach((vaultId) => {
+        socket.emit("joinVault", { vaultId });
+      });
+    });
+
+    socket.on("chat:message", (msg: any) => {
+      const vaultId = msg.vaultId;
+      if (!vaultId) return;
+
+      // Increment unread badge
+      setUnreadByVault((prev) => ({ ...prev, [vaultId]: (prev[vaultId] ?? 0) + 1 }));
+
+      // Update the last-message preview in the dropdown
+      setChats((prev) =>
+        prev.map((c) =>
+          c.vaultId === vaultId
+            ? {
+                ...c,
+                lastMessageText: msg.content,
+                lastMessageUser: msg.sender?.name ?? null,
+                lastMessageTime: msg.createdAt,
+              }
+            : c
+        )
+      );
+    });
+
+    return () => { socket.disconnect(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-join new vault rooms whenever vault list changes
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket?.connected) return;
+    vaultIdsRef.current.forEach((vaultId) => socket.emit("joinVault", { vaultId }));
+  }, [chats.length]);
 
   const handleResendVerification = async () => {
     setResending(true);
@@ -182,9 +262,9 @@ export default function NavLayout({
                 title="Vault Chats Hub"
               >
                 <MessageSquare className="w-5.5 h-5.5 text-black stroke-[3]" />
-                {chats.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0) > 0 && (
+                {totalUnread > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 bg-[#f43f5e] text-white border-2 border-black font-black font-mono text-[8.5px] w-5 h-5 rounded-none flex items-center justify-center shadow-[1px_1px_0px_#000]">
-                    {chats.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0)}
+                    {totalUnread > 99 ? "99+" : totalUnread}
                   </span>
                 )}
               </button>
@@ -194,7 +274,11 @@ export default function NavLayout({
                   <div className="p-2 border-b-2 border-black bg-stone-50 mb-1 rounded-none">
                     <div className="font-mono font-black text-xs uppercase text-black flex justify-between items-center">
                       <span>Vault Chats</span>
-                      <span className="bg-yellow-300 border border-black px-1.5 py-0.5 rounded-none font-mono text-[8px] tracking-tight uppercase">Unread Sort</span>
+                      {totalUnread > 0 && (
+                        <span className="bg-[#f43f5e] text-white border border-black px-1.5 py-0.5 rounded-none font-mono text-[8px] tracking-tight uppercase">
+                          {totalUnread} unread
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="max-h-[230px] overflow-y-auto divide-y divide-stone-200 custom-scrollbar">
@@ -202,17 +286,32 @@ export default function NavLayout({
                       <div className="p-4 text-center text-[10px] text-stone-400 font-mono italic">No active chat groups found.</div>
                     ) : (
                       chats.map((c: any) => (
-                        <div key={c.vaultId} onClick={() => { setChatDropdownOpen(false); if (onOpenVaultChat) onOpenVaultChat(c.vaultId); }} className="p-2 hover:bg-yellow-50 transition-colors cursor-pointer rounded-none text-left">
+                        <div
+                          key={c.vaultId}
+                          onClick={() => {
+                            setChatDropdownOpen(false);
+                            // Clear unread badge for this vault
+                            setUnreadByVault((prev) => { const n = { ...prev }; delete n[c.vaultId]; return n; });
+                            if (onOpenVaultChat) onOpenVaultChat(c.vaultId);
+                          }}
+                          className="p-2 hover:bg-yellow-50 transition-colors cursor-pointer rounded-none text-left"
+                        >
                           <div className="flex justify-between items-start gap-1">
                             <h4 className="font-mono font-black text-[11px] text-black line-clamp-1 leading-tight flex-1">{c.vaultName}</h4>
-                            {c.unreadCount > 0 && (
-                              <span className="shrink-0 leading-none bg-[#f43f5e] border border-black text-white font-mono font-black text-[8px] px-1 py-0.5 rounded-none">{c.unreadCount} NEW</span>
+                            {(unreadByVault[c.vaultId] ?? 0) > 0 && (
+                              <span className="shrink-0 leading-none bg-[#f43f5e] border border-black text-white font-mono font-black text-[8px] px-1 py-0.5 rounded-none">
+                                {unreadByVault[c.vaultId]} NEW
+                              </span>
                             )}
                           </div>
                           <p className="text-[10px] font-mono text-stone-500 mt-1 line-clamp-1">
-                            {c.lastMessageUser ? <><strong className="text-stone-700">@{c.lastMessageUser.split(" ")[0]}:</strong> {c.lastMessageText}</> : c.lastMessageText}
+                            {c.lastMessageUser
+                              ? <><strong className="text-stone-700">@{c.lastMessageUser.split(" ")[0]}:</strong> {c.lastMessageText}</>
+                              : c.lastMessageText}
                           </p>
-                          <span className="text-[8px] text-stone-400 font-mono mt-0.5 block">{new Date(c.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span className="text-[8px] text-stone-400 font-mono mt-0.5 block">
+                            {new Date(c.lastMessageTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </span>
                         </div>
                       ))
                     )}

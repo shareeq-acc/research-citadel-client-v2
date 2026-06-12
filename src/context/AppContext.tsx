@@ -280,23 +280,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     vid: string,
     pageOverride?: number,
     typeOverride?: string,
-    _startOverride?: string,
-    _endOverride?: string,
+    startOverride?: string,
+    endOverride?: string,
   ) => {
     try {
+      const category = typeOverride ?? auditTypeFilter;
+      const startDate = startOverride ?? auditStartDate;
+      const endDate   = endOverride   ?? auditEndDate;
+
       const query: AuditLogsQuery = {
-        limit: 20,
+        limit:  20,
         offset: (pageOverride ?? auditPage) * 20,
-        // server uses "action" param; pass undefined if "ALL"
-        action: typeOverride ?? auditTypeFilter,
+        // The dropdown values are category labels (VAULT, SOURCE, etc.)
+        // Pass as `category`; server expands them to matching actions.
+        // "ALL" means no filter.
+        category: category !== "ALL" ? category : undefined,
+        startDate: startDate || undefined,
+        endDate:   endDate   || undefined,
       };
 
       const res = await vaultService.getAuditLogs(vid, query);
       if (res.success) {
-        // Server returns a flat AuditLog[]
         const logs = (res.data as unknown as AuditLog[]) ?? [];
         setAuditLogs(logs);
-        // Build heatmap from audit log timestamps (84 cells = 12 weeks × 7 days)
         setAuditLogsData({ total: logs.length, graph: buildHeatmap(logs) });
       }
     } catch (err) {

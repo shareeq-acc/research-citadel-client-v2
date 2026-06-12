@@ -10,9 +10,10 @@ interface SourcesTabProps {
   myRole: "OWNER" | "CONTRIBUTOR" | "VIEWER";
   sources: Source[];
   onSourceAdded: (src: Source) => void;
+  onSourceClick?: (sourceId: string) => void;
 }
 
-export default function SourcesTab({ vaultId, myRole, sources, onSourceAdded }: SourcesTabProps) {
+export default function SourcesTab({ vaultId, myRole, sources, onSourceAdded, onSourceClick }: SourcesTabProps) {
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [addType, setAddType] = useState<"PDF" | "WEB_ARTICLE">("PDF");
@@ -23,90 +24,70 @@ export default function SourcesTab({ vaultId, myRole, sources, onSourceAdded }: 
   const [publication, setPublication] = useState("");
   const [year, setYear] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pdfFileName, setPdfFileName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const canEdit = myRole === "OWNER" || myRole === "CONTRIBUTOR";
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setPdfFileName(file.name);
-      if (!title.trim()) {
-        const baseName = file.name.replace(/\.[^/.]+$/, "");
-        const cleanTitle = baseName
-          .split(/[-_ ]+/)
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" ");
-        setTitle(cleanTitle);
-      }
+  const applyFile = (file: File) => {
+    setSelectedFile(file);
+    setPdfFileName(file.name);
+    if (!title.trim()) {
+      const baseName = file.name.replace(/\.[^/.]+$/, "");
+      const cleanTitle = baseName
+        .split(/[-_ ]+/)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+      setTitle(cleanTitle);
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) applyFile(e.target.files[0]);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      setPdfFileName(file.name);
-      if (!title.trim()) {
-        const baseName = file.name.replace(/\.[^/.]+$/, "");
-        const cleanTitle = baseName
-          .split(/[-_ ]+/)
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" ");
-        setTitle(cleanTitle);
-      }
-    }
+    if (e.dataTransfer.files?.[0]) applyFile(e.dataTransfer.files[0]);
   };
 
   const handleCreateSource = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) {
-      setError("Document title is required.");
-      return;
-    }
+    if (!title.trim()) { setError("Document title is required."); return; }
+    if (addType === "PDF" && !selectedFile) { setError("Please select a PDF file to upload."); return; }
+    if (addType === "WEB_ARTICLE" && !externalUrl.trim()) { setError("External URL is required."); return; }
 
     setLoading(true);
     setError("");
 
-    // Simulate structured payload
-    const payload: any = {
-      title,
-      authors: authors ? authors.split(",").map((a) => a.trim()) : ["Unknown"],
-      publication: publication || null,
-      year: year ? parseInt(year) : null,
-      sourceType: addType,
-      externalUrl: addType === "WEB_ARTICLE" ? externalUrl : null,
-    };
-
-    if (addType === "PDF") {
-      payload.file = {
-        fileName: pdfFileName || "draft_manuscript.pdf",
-        fileUrl: "https://arxiv.org/pdf/1706.03762.pdf",
-        fileSize: 1024 * 1024 * 3, // 3MB mock
-      };
-    }
-
     try {
-      const res = await sourceService.createSource(vaultId, {
-        title,
-        authors: authors ? authors.split(",").map((a) => a.trim()) : ["Unknown"],
-        publication: publication || undefined,
-        year: year ? parseInt(year) : undefined,
-        sourceType: addType,
-        externalUrl: addType === "WEB_ARTICLE" ? externalUrl : undefined,
-      });
+      const res = await sourceService.createSource(
+        vaultId,
+        {
+          title,
+          authors: authors ? authors.split(",").map((a) => a.trim()) : ["Unknown"],
+          publication: publication || undefined,
+          year: year ? parseInt(year) : undefined,
+          sourceType: addType,
+          externalUrl: addType === "WEB_ARTICLE" ? externalUrl : undefined,
+        },
+        // Pass the real File object for multipart upload; undefined for web articles
+        addType === "PDF" && selectedFile ? selectedFile : undefined,
+      );
 
       if (res.success) {
         onSourceAdded(res.data);
         setShowAddModal(false);
-        setTitle(""); setAuthors(""); setPublication(""); setYear(""); setExternalUrl(""); setPdfFileName("");
+        // Reset form
+        setTitle(""); setAuthors(""); setPublication(""); setYear("");
+        setExternalUrl(""); setSelectedFile(null); setPdfFileName("");
       } else {
-        setError(res.message || "Failed to add source parameters.");
+        setError("Failed to add source.");
       }
     } catch (err: any) {
-      setError(err?.message || "Network error while adding source.");
+      setError(err?.message || "Network error while uploading source.");
     } finally {
       setLoading(false);
     }
@@ -173,10 +154,11 @@ export default function SourcesTab({ vaultId, myRole, sources, onSourceAdded }: 
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((s) => (
-            <a
+            <button
               key={s.id}
-              href={`#source-${s.id}`}
-              className="bg-white p-5 rounded neo-border neo-shadow-sm hover:-translate-y-1 transition-all flex flex-col justify-between group"
+              type="button"
+              onClick={() => onSourceClick?.(s.id)}
+              className="bg-white p-5 rounded neo-border neo-shadow-sm hover:-translate-y-1 transition-all flex flex-col justify-between group text-left w-full cursor-pointer"
             >
               <div>
                 <div className="flex justify-between items-start gap-2 mb-3">
@@ -228,7 +210,7 @@ export default function SourcesTab({ vaultId, myRole, sources, onSourceAdded }: 
                 <span>View document analysis</span>
                 <span className="text-neo-orange text-sm font-semibold">→</span>
               </div>
-            </a>
+            </button>
           ))}
         </div>
       )}
@@ -343,16 +325,33 @@ export default function SourcesTab({ vaultId, myRole, sources, onSourceAdded }: 
                     onClick={() => document.getElementById("pdf-file-picker")?.click()}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={handleDrop}
-                    className="border-4 border-dashed border-neo-dark rounded bg-neo-bg p-5 text-center cursor-pointer hover:bg-stone-50 transition-all select-none"
+                    className={`border-4 border-dashed rounded p-5 text-center cursor-pointer transition-all select-none ${
+                      selectedFile
+                        ? "border-emerald-500 bg-emerald-50"
+                        : "border-neo-dark bg-neo-bg hover:bg-stone-50"
+                    }`}
                   >
-                    <FileText className="w-8 h-8 text-stone-500 mx-auto mb-2 animate-bounce-slow" />
-                    <span className="text-xs font-bold text-neo-dark block mb-1">
-                      Drag &amp; drop PDF here or click to select from your computer
-                    </span>
-                    <span className="text-[10px] text-stone-500 block mb-3 font-sans">
-                      Any standard PDF document
-                    </span>
-
+                    {selectedFile ? (
+                      <div className="flex flex-col items-center gap-1.5">
+                        <FileText className="w-8 h-8 text-emerald-600 mx-auto" />
+                        <span className="text-xs font-bold text-emerald-800 font-mono truncate max-w-full px-2">
+                          {selectedFile.name}
+                        </span>
+                        <span className="text-[10px] text-stone-500 font-sans">
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB — click to change
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <FileText className="w-8 h-8 text-stone-500 mx-auto mb-2" />
+                        <span className="text-xs font-bold text-neo-dark block mb-1">
+                          Drag &amp; drop PDF here or click to select
+                        </span>
+                        <span className="text-[10px] text-stone-500 block font-sans">
+                          PDF documents only
+                        </span>
+                      </>
+                    )}
                     <input
                       type="file"
                       id="pdf-file-picker"
@@ -360,20 +359,6 @@ export default function SourcesTab({ vaultId, myRole, sources, onSourceAdded }: 
                       onChange={handleFileChange}
                       className="hidden"
                     />
-
-                    <div className="relative mt-2" onClick={(e) => e.stopPropagation()}>
-                      <label className="block text-left text-[9px] font-bold font-mono text-stone-500 uppercase mb-1">
-                        Active Reference File Name:
-                      </label>
-                      <input
-                        type="text"
-                        value={pdfFileName}
-                        onChange={(e) => setPdfFileName(e.target.value)}
-                        placeholder="e.g. attention_is_all_you_need.pdf"
-                        required
-                        className="w-full text-center text-xs p-2 border-2 border-neo-dark bg-white rounded font-mono text-neo-dark shadow-[1px_1px_0px_rgba(0,0,0,1)] focus:shadow-[2px_2px_0px_rgba(0,0,0,1)] outline-hidden"
-                      />
-                    </div>
                   </div>
                 </div>
               ) : (
@@ -408,10 +393,18 @@ export default function SourcesTab({ vaultId, myRole, sources, onSourceAdded }: 
                 </button>
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="neo-btn px-5 py-2 text-xs"
+                  disabled={loading || (addType === "PDF" && !selectedFile)}
+                  className="neo-btn px-5 py-2 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Index processing..." : "Save Reference"}
+                  {loading ? (
+                    <span className="flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                      </svg>
+                      Uploading…
+                    </span>
+                  ) : "Save Reference"}
                 </button>
               </div>
             </form>

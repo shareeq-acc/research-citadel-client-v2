@@ -91,6 +91,17 @@ const sourceService = {
       `/vault/${vaultId}/source/${sourceId}/process-for-qa`,
     );
   },
+
+  /**
+   * One-shot: extract text from the attached file (if missing) then
+   * chunk and index the source for Q&A.
+   * Use when processForQa fails with "No extracted text available".
+   */
+  extractAndIndex(vaultId: string, sourceId: string) {
+    return post<{ sourceId: string; chunksCreated: number; wordsExtracted: number }>(
+      `/vault/${vaultId}/source/${sourceId}/extract-and-index`,
+    );
+  },
 } as const;
 
 export default sourceService;

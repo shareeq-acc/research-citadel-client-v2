@@ -3,6 +3,7 @@ import { User, Vault, Source, Annotation, AuditLog, VaultMember } from "@/types"
 export const MOCK_USER: User = {
   id: "mock-user-001",
   name: "Seeri Ijj",
+  username: "seeri_ijj",
   email: "seeri@gmail.com",
   avatar: "https://api.dicebear.com/7.x/pixel-art/svg?seed=SeerIjj",
   isEmailVerified: true,

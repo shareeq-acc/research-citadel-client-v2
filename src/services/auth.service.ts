@@ -13,6 +13,7 @@ import type { User } from "@/types";
 
 export interface RegisterPayload {
   name: string;
+  username: string;
   email: string;
   password: string;
 }

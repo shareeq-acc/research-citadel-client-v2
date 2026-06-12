@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Library, Mail, Lock } from "lucide-react";
+import { Library, Mail, Lock, Eye, EyeOff, AtSign } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { authService } from "@/services";
 import type { ApiError } from "@/lib/http-client";
@@ -33,8 +33,15 @@ function AuthContent() {
 
   // Register
   const [regName, setRegName] = useState("");
+  const [regUsername, setRegUsername] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPass, setRegPass] = useState("");
+  const [regConfirmPass, setRegConfirmPass] = useState("");
+  const [showRegPass, setShowRegPass] = useState(false);
+  const [showRegConfirmPass, setShowRegConfirmPass] = useState(false);
+
+  // Login show/hide password
+  const [showLoginPass, setShowLoginPass] = useState(false);
 
   // OTP – we keep track of the email that triggered the OTP so we can pass it
   // back to the verify-otp endpoint.
@@ -87,18 +94,31 @@ function AuthContent() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     clearMessages();
-    if (!regName || !regEmail || !regPass) return;
+    if (!regName || !regUsername || !regEmail || !regPass || !regConfirmPass) return;
+
+    // Client-side username validation
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(regUsername)) {
+      setErrMessage("Username must be 3–30 characters and contain only letters, numbers, or underscores.");
+      return;
+    }
+
+    // Confirm password match
+    if (regPass !== regConfirmPass) {
+      setErrMessage("Passwords do not match.");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await authService.register({
         name: regName,
+        username: regUsername.toLowerCase(),
         email: regEmail,
         password: regPass,
       });
       if (res.success) {
         setCurrentUser(res.data.user);
         setOtpEmail(regEmail);
-        // Request the email-verification OTP right away
         await authService.requestEmailVerification();
         setScreen("verify-otp");
         setOkMessage("Account created! A 6-digit code has been sent to your email.");
@@ -244,13 +264,21 @@ function AuthContent() {
               <div className="relative">
                 <Lock className="absolute left-3 top-3.5 text-stone-400 w-4 h-4" />
                 <input
-                  type="password"
+                  type={showLoginPass ? "text" : "password"}
                   required
                   value={loginPass}
                   onChange={(e) => setLoginPass(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full neo-input !pl-10 text-xs"
+                  className="w-full neo-input !pl-10 !pr-10 text-xs"
                 />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowLoginPass((v) => !v)}
+                  className="absolute right-3 top-3 text-stone-400 hover:text-stone-700 transition-colors"
+                >
+                  {showLoginPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
             <button
@@ -282,9 +310,10 @@ function AuthContent() {
         {/* ── REGISTER ── */}
         {screen === "register" && (
           <form onSubmit={handleRegister} className="space-y-4">
+            {/* Full name */}
             <div>
               <label className="block text-[10px] font-black font-mono text-stone-600 uppercase mb-1">
-                Full Name / Call Name
+                Full Name
               </label>
               <input
                 type="text"
@@ -295,35 +324,118 @@ function AuthContent() {
                 className="w-full neo-input text-xs"
               />
             </div>
+
+            {/* Username */}
+            <div>
+              <label className="block text-[10px] font-black font-mono text-stone-600 uppercase mb-1">
+                Username
+              </label>
+              <div className="relative">
+                <AtSign className="absolute left-3 top-3.5 text-stone-400 w-4 h-4 pointer-events-none" />
+                <input
+                  type="text"
+                  required
+                  value={regUsername}
+                  onChange={(e) =>
+                    setRegUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").toLowerCase())
+                  }
+                  placeholder="your_handle"
+                  minLength={3}
+                  maxLength={30}
+                  className="w-full neo-input text-xs !pl-10"
+                />
+              </div>
+              <p className="text-[9px] font-mono text-stone-400 mt-1">
+                3–30 chars · letters, numbers, underscores · unique
+              </p>
+            </div>
+
+            {/* Email */}
             <div>
               <label className="block text-[10px] font-black font-mono text-stone-600 uppercase mb-1">
                 Email Address
               </label>
-              <input
-                type="email"
-                required
-                value={regEmail}
-                onChange={(e) => setRegEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full neo-input text-xs"
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 top-3.5 text-stone-400 w-4 h-4 pointer-events-none" />
+                <input
+                  type="email"
+                  required
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full neo-input text-xs !pl-10"
+                />
+              </div>
             </div>
+
+            {/* Password */}
             <div>
               <label className="block text-[10px] font-black font-mono text-stone-600 uppercase mb-1">
-                Passcode String
+                Password
               </label>
-              <input
-                type="password"
-                required
-                value={regPass}
-                onChange={(e) => setRegPass(e.target.value)}
-                placeholder="Min 6 chars, uppercase, number, symbol"
-                className="w-full neo-input text-xs"
-              />
+              <div className="relative">
+                <Lock className="absolute left-3 top-3.5 text-stone-400 w-4 h-4 pointer-events-none" />
+                <input
+                  type={showRegPass ? "text" : "password"}
+                  required
+                  value={regPass}
+                  onChange={(e) => setRegPass(e.target.value)}
+                  placeholder="Min 6 chars, uppercase, number, symbol"
+                  className="w-full neo-input text-xs !pl-10 !pr-10"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowRegPass((v) => !v)}
+                  className="absolute right-3 top-3 text-stone-400 hover:text-stone-700 transition-colors"
+                >
+                  {showRegPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-[10px] font-black font-mono text-stone-600 uppercase mb-1">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3.5 text-stone-400 w-4 h-4 pointer-events-none" />
+                <input
+                  type={showRegConfirmPass ? "text" : "password"}
+                  required
+                  value={regConfirmPass}
+                  onChange={(e) => setRegConfirmPass(e.target.value)}
+                  placeholder="Re-enter your password"
+                  className={`w-full neo-input text-xs !pl-10 !pr-10 ${
+                    regConfirmPass && regPass !== regConfirmPass
+                      ? "border-rose-500 bg-rose-50"
+                      : regConfirmPass && regPass === regConfirmPass
+                      ? "border-emerald-500"
+                      : ""
+                  }`}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowRegConfirmPass((v) => !v)}
+                  className="absolute right-3 top-3 text-stone-400 hover:text-stone-700 transition-colors"
+                >
+                  {showRegConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {/* Inline mismatch hint */}
+              {regConfirmPass && regPass !== regConfirmPass && (
+                <p className="text-[9px] font-mono text-rose-600 mt-1">Passwords do not match.</p>
+              )}
+              {regConfirmPass && regPass === regConfirmPass && (
+                <p className="text-[9px] font-mono text-emerald-600 mt-1">✓ Passwords match.</p>
+              )}
+            </div>
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (!!regConfirmPass && regPass !== regConfirmPass)}
               className="w-full neo-btn py-3.5 text-xs disabled:opacity-60"
             >
               {loading ? "Registering…" : "Inscribe Account Credentials"}

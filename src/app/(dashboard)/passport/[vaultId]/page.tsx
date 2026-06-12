@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
-import { apiFetch } from "@/lib/api";
+import { vaultService } from "@/services";
 import { Vault } from "@/types";
 import { PassportContent } from "@/components/passport/PassportContent";
 
@@ -32,11 +32,10 @@ export default function PassportPage() {
   useEffect(() => {
     async function loadVault() {
       try {
-        const res = await apiFetch(`/api/vault/${vaultId}`);
-        const data = await res.json();
-        if (data.success) {
-          setVault(data.data);
-          setActiveVault(data.data);
+        const res = await vaultService.getVault(vaultId);
+        if (res.success) {
+          setVault(res.data);
+          setActiveVault(res.data);
         }
       } catch { /* ignore */ } finally {
         setLoading(false);

@@ -6,10 +6,11 @@ import {
   Plus, Search, Globe, Lock, FolderPlus, Sparkles,
   LineChart, BookOpenCheck, LockKeyhole, BellOff, ChevronRight,
   History, Bell, ShieldCheck, Fingerprint, Eye, Cpu, VolumeX,
-  Trash2, Check, Crown, Edit3, Menu, Settings
+  Trash2, Check, Crown, Edit3, Menu, Settings,
+  UserPlus, Send, Loader2, X
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { vaultService, userService } from "@/services";
+import { vaultService, userService, annotationService, invitationService } from "@/services";
 import { Source, Annotation, Vault } from "@/types";
 import { RenderUserAvatar } from "@/components/RenderUserAvatar";
 import StatsTab from "@/components/vault/StatsTab";
@@ -394,7 +395,7 @@ export default function DashboardClient() {
               {/* Tab Controllers */}
               <div className="flex border-4 border-neo-dark bg-white rounded-sm shadow-[3px_3px_0px_#0A0A0A] overflow-x-auto select-none">
                 {[
-                  { id: "stats", label: "Stats" }, { id: "sources", label: "Citations" },
+                  { id: "stats", label: "Stats" }, { id: "sources", label: "Sources" },
                   { id: "annotations", label: "Annotations" }, { id: "members", label: "Researchers" },
                   { id: "chat", label: "Chat" }, { id: "qa", label: "Q/A" },
                   { id: "audit", label: "Audits" }, { id: "settings", label: "Settings" },
@@ -425,44 +426,27 @@ export default function DashboardClient() {
                       <StatsTab vaultId={activeVault.id} members={activeVault.members || []} auditData={auditLogsData} />
                     )}
                     {activeVaultTab === "sources" && (
-                      <SourcesTab vaultId={activeVault.id} myRole={activeVault.myRole || "VIEWER"} sources={sources} onSourceAdded={(newSrc) => setSources((prev) => [newSrc, ...prev])} />
+                      <SourcesTab
+                        vaultId={activeVault.id}
+                        myRole={activeVault.myRole || "VIEWER"}
+                        sources={sources}
+                        onSourceAdded={(newSrc) => setSources((prev) => [newSrc, ...prev])}
+                        onSourceClick={(sourceId) => router.push(`/source/${activeVault.id}/${sourceId}`)}
+                      />
                     )}
                     {activeVaultTab === "annotations" && (
-                      <div className="bg-white rounded-sm border-4 border-neo-dark p-5 shadow-[4px_4px_0px_#000] space-y-4 text-left">
-                        <h3 className="font-display font-black text-sm uppercase tracking-wider text-neo-dark border-b-2 border-stone-200 pb-2 flex items-center gap-1.5">
-                          <BookOpenCheck className="w-5 h-5 text-neo-orange animate-pulse" />
-                          Unified Annotations index
-                        </h3>
-                        {sources.length === 0 ? (
-                          <div className="text-center p-8 text-xs text-stone-400 italic font-mono bg-stone-50 border-2 border-dashed border-stone-200 rounded-sm">
-                            Add reference sources inside your library tab to seed annotations.
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            {sources.map((src) => (
-                              <button key={src.id} onClick={() => handleNavigateToSourceDetail(src.id)} className="w-full text-left p-3.5 bg-stone-50 border-2 border-neo-dark rounded-sm hover:bg-amber-50 transition-colors flex items-center justify-between group cursor-pointer">
-                                <div>
-                                  <span className="font-display font-black text-xs text-neo-dark truncate block">{src.title}</span>
-                                  <span className="text-[10px] font-mono text-stone-500 mt-0.5 block">{src.sourceType}</span>
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-neo-dark transition-colors" />
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      <AnnotationsTab
+                        vaultId={activeVault.id}
+                        sources={sources}
+                        onNavigateToSource={(sourceId) => router.push(`/source/${activeVault.id}/${sourceId}`)}
+                        onNavigateToWorkspace={(sourceId) => router.push(`/annotation-workspace/${activeVault.id}/${sourceId}`)}
+                      />
                     )}
                     {activeVaultTab === "members" && currentUser && (
                       <MembersTab
                         activeVault={activeVault}
                         currentUser={currentUser}
-                        inviteSearch={inviteSearch}
-                        setInviteSearch={setInviteSearch}
-                        searchResults={searchResults}
-                        handleUserSearchQuery={handleUserSearchQuery}
-                        inviteRole={inviteRole}
-                        setInviteRole={setInviteRole}
-                        handleAddMemberSubmit={handleAddMemberSubmit}
+                        onMemberRemoved={() => loadVaultDetail(activeVault.id)}
                       />
                     )}
                     {activeVaultTab === "chat" && currentUser && (
@@ -556,60 +540,475 @@ export default function DashboardClient() {
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function MembersTab({ activeVault, currentUser, inviteSearch, setInviteSearch, searchResults, handleUserSearchQuery, inviteRole, setInviteRole, handleAddMemberSubmit }: any) {
+function MembersTab({ activeVault, currentUser, inviteRole, setInviteRole, onMemberRemoved }: any) {
+  const [members,       setMembers]       = React.useState<any[]>([]);
+  const [loadingMembers,setLoadingMembers] = React.useState(true);
+  const [membersError,  setMembersError]  = React.useState("");
+  const [removingId,    setRemovingId]    = React.useState<string | null>(null);
+
+  // Invite modal
+  const [showInviteModal, setShowInviteModal] = React.useState(false);
+  const [inviteQuery,     setInviteQuery]     = React.useState("");
+  const [inviteResults,   setInviteResults]   = React.useState<any[]>([]);
+  const [inviteSearching, setInviteSearching] = React.useState(false);
+  const [inviteRole2,     setInviteRole2]     = React.useState<"CONTRIBUTOR" | "VIEWER">("CONTRIBUTOR");
+  const [inviting,        setInviting]        = React.useState<string | null>(null);
+  const [inviteSuccess,   setInviteSuccess]   = React.useState("");
+  const [inviteError,     setInviteError]     = React.useState("");
+  const searchTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const isOwner = activeVault.myRole === "OWNER" || currentUser.id === activeVault.ownerId;
+
+  const fetchMembers = React.useCallback(async () => {
+    setLoadingMembers(true); setMembersError("");
+    try {
+      const res = await vaultService.getMembers(activeVault.id);
+      if (res.success) setMembers(res.data as any[]);
+      else setMembersError(res.message || "Failed to load members.");
+    } catch (err: any) {
+      setMembersError(err?.message || "Could not load members.");
+    } finally { setLoadingMembers(false); }
+  }, [activeVault.id]);
+
+  React.useEffect(() => { fetchMembers(); }, [fetchMembers]);
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!confirm("Remove this researcher from the vault?")) return;
+    setRemovingId(userId);
+    try {
+      const res = await vaultService.removeMember(activeVault.id, userId);
+      if (res.success) { setMembers((p) => p.filter((m) => m.user.id !== userId)); onMemberRemoved?.(); }
+    } catch { /* ignore */ } finally { setRemovingId(null); }
+  };
+
+  // Username search with debounce
+  const handleInviteSearch = (q: string) => {
+    setInviteQuery(q); setInviteError(""); setInviteSuccess("");
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (q.trim().length < 2) { setInviteResults([]); return; }
+    setInviteSearching(true);
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await invitationService.searchByUsername(q.trim());
+        if (res.success) {
+          const memberIds = new Set(members.map((m: any) => m.user.id));
+          setInviteResults((res.data ?? []).filter((u: any) => !memberIds.has(u.id)));
+        }
+      } catch { setInviteResults([]); } finally { setInviteSearching(false); }
+    }, 350);
+  };
+
+  const handleSendInvite = async (userId: string) => {
+    setInviting(userId); setInviteError(""); setInviteSuccess("");
+    try {
+      const res = await invitationService.sendInvitation(activeVault.id, userId, inviteRole2);
+      if (res.success) {
+        setInviteSuccess("Invitation sent! The user will receive an email.");
+        setInviteQuery(""); setInviteResults([]);
+        setTimeout(() => { setInviteSuccess(""); setShowInviteModal(false); }, 3000);
+      } else { setInviteError(res.message || "Failed to send invitation."); }
+    } catch (err: any) { setInviteError(err?.message || "Failed to send invitation."); }
+    finally { setInviting(null); }
+  };
+
+  const roleBadge = (role: string) => {
+    if (role === "OWNER")       return "bg-neo-yellow text-neo-dark";
+    if (role === "CONTRIBUTOR") return "bg-emerald-100 text-emerald-900";
+    return "bg-stone-100 text-stone-700";
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-      <div className="md:col-span-1 bg-white p-4 rounded-sm border-4 border-neo-dark shadow-[4px_4px_0px_rgba(0,0,0,1)] space-y-4">
-        <h3 className="font-display font-black text-xs uppercase tracking-wider text-neo-dark border-b-2 border-stone-200 pb-2.5">Invite Personnel</h3>
-        {isOwner ? (
-          <div className="space-y-3">
-            <input type="text" placeholder="Search researchers..." value={inviteSearch} onChange={(e) => handleUserSearchQuery(e.target.value)} className="w-full text-xs p-2 border-2 border-neo-dark rounded focus:outline-none font-mono" />
-            {searchResults.length > 0 && (
-              <div className="border-2 border-neo-dark rounded bg-stone-50 divide-y-2 divide-neo-dark">
-                {searchResults.map((usr: any) => (
-                  <div key={usr.id} className="p-2 flex justify-between items-center bg-white hover:bg-amber-50">
-                    <div className="font-mono text-[10px]">
-                      <span className="font-black text-neo-dark block">{usr.name}</span>
-                      <span className="text-[9px] text-stone-400 break-all">{usr.email}</span>
-                    </div>
-                    <button onClick={() => handleAddMemberSubmit(usr.id)} className="bg-neo-yellow border-2 border-neo-dark px-2 py-1 rounded-sm text-[9px] shadow-[1px_1px_0px_#000] font-bold font-mono cursor-pointer">Add</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div>
-              <label className="block text-[9px] font-bold font-mono text-stone-500 uppercase mb-1">Role</label>
-              <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as any)} className="w-full text-xs p-1.5 border-2 border-neo-dark rounded focus:outline-none">
-                <option value="CONTRIBUTOR">Contributor</option>
-                <option value="VIEWER">Viewer</option>
-              </select>
-            </div>
-          </div>
-        ) : (
-          <p className="text-xs text-stone-500 font-mono italic">Owner role required to invite members.</p>
-        )}
-      </div>
-      <div className="md:col-span-2 bg-white p-4 rounded-sm border-4 border-neo-dark shadow-[4px_4px_0px_rgba(0,0,0,1)] space-y-4">
-        <h3 className="font-display font-black text-xs uppercase tracking-wider text-neo-dark border-b-2 border-stone-200 pb-2.5">Active Researchers ({activeVault.members?.length || 0})</h3>
-        <div className="divide-y-2 divide-stone-100 space-y-2">
-          {(activeVault.members || []).map((m: any) => (
-            <div key={m.id} className="py-2.5 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <img src={m.user.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${m.user.name}`} alt={m.user.name} className="w-8 h-8 rounded-full border-2 border-neo-dark bg-stone-100 object-cover shrink-0" />
-                <div>
-                  <span className="font-bold text-xs text-neo-dark block">{m.user.name}</span>
-                  <span className="text-[10px] text-stone-500 font-mono">{m.user.email}</span>
-                </div>
-              </div>
-              <span className="text-[9px] font-mono font-black bg-neo-yellow border-2 border-neo-dark px-2 py-0.5 rounded-sm shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)]">{m.role}</span>
-            </div>
-          ))}
+    <div className="space-y-4 text-left">
+
+      {/* ── Header row ── */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-display font-black text-sm uppercase tracking-wider text-neo-dark flex items-center gap-1.5">
+          <Crown className="w-4 h-4 text-neo-orange" />
+          Active Researchers
+          {!loadingMembers && (
+            <span className="text-[9px] font-mono font-black bg-neo-yellow border-2 border-neo-dark px-1.5 py-0.5 rounded-sm shadow-[1px_1px_0px_#000]">
+              {members.length}
+            </span>
+          )}
+        </h3>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={fetchMembers}
+            disabled={loadingMembers}
+            className="text-[9px] font-mono font-bold text-stone-500 hover:text-neo-dark border border-stone-300 hover:border-neo-dark px-2 py-1 rounded cursor-pointer transition-all disabled:opacity-40"
+          >
+            {loadingMembers ? "Loading…" : "↻ Refresh"}
+          </button>
+          {isOwner && (
+            <button
+              type="button"
+              onClick={() => { setShowInviteModal(true); setInviteQuery(""); setInviteResults([]); setInviteError(""); setInviteSuccess(""); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-neo-yellow border-2 border-neo-dark text-neo-dark font-display font-black text-[10px] uppercase rounded-sm shadow-[2px_2px_0px_#000] hover:bg-yellow-300 hover:-translate-y-0.5 transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              Invite Researcher
+            </button>
+          )}
         </div>
       </div>
+
+      {membersError && (
+        <div className="p-2 bg-rose-50 border-2 border-rose-400 text-xs font-mono text-rose-700 font-bold rounded">
+          ⚠️ {membersError}
+        </div>
+      )}
+
+      {/* ── Members list ── */}
+      <div className="bg-white border-4 border-neo-dark rounded-sm shadow-[4px_4px_0px_rgba(0,0,0,1)]">
+        {loadingMembers ? (
+          <div className="p-6 space-y-3 animate-pulse">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3 py-2">
+                <div className="w-9 h-9 rounded-full bg-stone-200 border-2 border-neo-dark shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3 bg-stone-200 rounded w-1/3" />
+                  <div className="h-2.5 bg-stone-100 rounded w-1/2" />
+                </div>
+                <div className="h-5 w-20 bg-stone-200 border-2 border-neo-dark rounded-sm" />
+              </div>
+            ))}
+          </div>
+        ) : members.length === 0 ? (
+          <p className="text-xs text-stone-400 font-mono italic text-center py-10">
+            No members yet. Invite researchers using the button above.
+          </p>
+        ) : (
+          <div className="divide-y-2 divide-stone-100">
+            {members.map((m: any) => (
+              <div key={m.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <img
+                    src={m.user.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(m.user.name)}`}
+                    alt={m.user.name}
+                    className="w-9 h-9 rounded-full border-2 border-neo-dark bg-stone-100 object-cover shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <span className="font-bold text-xs text-neo-dark block truncate">{m.user.name}</span>
+                    <span className="text-[10px] text-stone-500 font-mono truncate block">{m.user.email}</span>
+                    {m.joinedAt && (
+                      <span className="text-[9px] text-stone-400 font-mono block">
+                        Joined {new Date(m.joinedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`text-[9px] font-mono font-black border-2 border-neo-dark px-2 py-0.5 rounded-sm shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)] ${roleBadge(m.role)}`}>
+                    {m.role}
+                  </span>
+                  {isOwner && m.role !== "OWNER" && (
+                    <button
+                      onClick={() => handleRemoveMember(m.user.id)}
+                      disabled={removingId === m.user.id}
+                      className="p-1.5 bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white border-2 border-neo-dark rounded shadow-[1px_1px_0px_#000] transition-all disabled:opacity-40 cursor-pointer"
+                      title="Remove member"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Invite Modal ── */}
+      {showInviteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neo-dark/50">
+          <div className="w-full max-w-md bg-white border-4 border-neo-dark rounded-sm shadow-[6px_6px_0px_#000] overflow-hidden">
+
+            {/* Modal header */}
+            <div className="bg-neo-yellow border-b-4 border-neo-dark px-5 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-display font-black text-sm uppercase tracking-wider text-neo-dark flex items-center gap-1.5">
+                  <UserPlus className="w-4 h-4" />
+                  Invite Researcher
+                </h3>
+                <p className="text-[10px] font-mono text-stone-600 mt-0.5">Search by username and send an email invitation.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowInviteModal(false)}
+                className="p-1.5 hover:bg-amber-300 border-2 border-neo-dark rounded cursor-pointer transition-colors"
+              >
+                <X className="w-4 h-4 text-neo-dark" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+
+              {/* Success / error */}
+              {inviteSuccess && (
+                <div className="p-3 bg-emerald-50 border-2 border-emerald-500 text-xs font-mono font-bold text-emerald-700 rounded-sm flex items-center gap-2">
+                  <Check className="w-4 h-4 shrink-0" /> {inviteSuccess}
+                </div>
+              )}
+              {inviteError && (
+                <div className="p-3 bg-rose-50 border-2 border-rose-400 text-xs font-mono font-bold text-rose-700 rounded-sm">
+                  ⚠️ {inviteError}
+                </div>
+              )}
+
+              {/* Username search */}
+              <div>
+                <label className="block text-[9px] font-black font-mono text-stone-600 uppercase mb-1.5">
+                  Search by Username
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 text-stone-400 w-4 h-4 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="@username"
+                    value={inviteQuery}
+                    onChange={(e) => handleInviteSearch(e.target.value)}
+                    className="w-full text-xs p-2 pl-9 border-2 border-neo-dark rounded-sm focus:outline-none font-mono bg-stone-50"
+                    autoFocus
+                  />
+                  {inviteSearching && (
+                    <Loader2 className="absolute right-3 top-2.5 w-4 h-4 animate-spin text-stone-400" />
+                  )}
+                </div>
+                <p className="text-[9px] font-mono text-stone-400 mt-1">Min 2 characters to search.</p>
+              </div>
+
+              {/* Role selector */}
+              <div>
+                <label className="block text-[9px] font-black font-mono text-stone-600 uppercase mb-1.5">
+                  Assign Role
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["CONTRIBUTOR", "VIEWER"] as const).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setInviteRole2(r)}
+                      className={`py-1.5 text-[10px] font-display font-black border-2 border-neo-dark rounded-sm cursor-pointer transition-all ${
+                        inviteRole2 === r ? "bg-neo-yellow shadow-[1px_1px_0px_#000]" : "bg-stone-50 hover:bg-stone-100"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Search results */}
+              {inviteResults.length > 0 && (
+                <div className="border-2 border-neo-dark rounded-sm overflow-hidden">
+                  <div className="bg-stone-50 px-3 py-1.5 border-b-2 border-neo-dark">
+                    <span className="text-[9px] font-mono font-black text-stone-500 uppercase tracking-widest">
+                      {inviteResults.length} result{inviteResults.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div className="divide-y-2 divide-stone-100 max-h-52 overflow-y-auto">
+                    {inviteResults.map((u: any) => (
+                      <div key={u.id} className="px-3 py-2.5 flex items-center justify-between gap-3 bg-white hover:bg-amber-50 transition-colors">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img
+                            src={u.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(u.name)}`}
+                            alt={u.name}
+                            className="w-8 h-8 rounded-full border-2 border-neo-dark shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <span className="font-black text-xs text-neo-dark block truncate">{u.name}</span>
+                            <span className="font-mono text-[9px] text-stone-400 block">@{u.username}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleSendInvite(u.id)}
+                          disabled={inviting === u.id}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-neo-dark text-neo-yellow font-display font-black text-[10px] uppercase border-2 border-neo-dark rounded-sm shadow-[1.5px_1.5px_0px_#FACC15] hover:bg-stone-800 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                        >
+                          {inviting === u.id
+                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                            : <Send className="w-3 h-3" />
+                          }
+                          Invite
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {inviteQuery.trim().length >= 2 && !inviteSearching && inviteResults.length === 0 && !inviteSuccess && (
+                <p className="text-xs font-mono text-stone-400 italic text-center py-2">
+                  No users found for "@{inviteQuery}".
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+function AnnotationsTab({ vaultId, sources, onNavigateToSource, onNavigateToWorkspace }: {
+  vaultId: string;
+  sources: Source[];
+  onNavigateToSource: (sourceId: string) => void;
+  onNavigateToWorkspace: (sourceId: string) => void;
+}) {
+  const [annotationsBySource, setAnnotationsBySource] = React.useState<Record<string, Annotation[]>>({});
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (sources.length === 0) { setLoading(false); return; }
+    setLoading(true);
+    Promise.all(
+      sources.map((src) =>
+        annotationService.listAnnotations(vaultId, src.id)
+          .then((res) => ({ sourceId: src.id, data: res.success ? (res.data as Annotation[]) : [] }))
+          .catch(() => ({ sourceId: src.id, data: [] }))
+      )
+    ).then((results) => {
+      const map: Record<string, Annotation[]> = {};
+      results.forEach(({ sourceId, data }) => { map[sourceId] = data; });
+      setAnnotationsBySource(map);
+    }).finally(() => setLoading(false));
+  }, [vaultId, sources.map(s => s.id).join(",")]);
+
+  const totalAnnotations = Object.values(annotationsBySource).reduce((s, a) => s + a.length, 0);
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-sm border-4 border-neo-dark p-5 shadow-[4px_4px_0px_#000] space-y-3 animate-pulse">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-16 bg-stone-100 border-2 border-neo-dark rounded-sm" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-sm border-4 border-neo-dark shadow-[4px_4px_0px_#000] text-left overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b-2 border-neo-dark bg-stone-50">
+        <h3 className="font-display font-black text-sm uppercase tracking-wider text-neo-dark flex items-center gap-1.5">
+          <BookOpenCheck className="w-5 h-5 text-neo-orange" />
+          Unified Annotations Index
+        </h3>
+        <span className="text-[10px] font-mono font-black bg-neo-yellow border-2 border-neo-dark px-2 py-0.5 rounded-sm shadow-[1.5px_1.5px_0px_#000]">
+          {totalAnnotations} total
+        </span>
+      </div>
+
+      {sources.length === 0 ? (
+        <div className="text-center p-10 text-xs text-stone-400 italic font-mono bg-stone-50 border-t-0">
+          Add sources in the Sources tab first — annotations live inside sources.
+        </div>
+      ) : (
+        <div className="divide-y-2 divide-neo-dark">
+          {sources.map((src) => {
+            const anns = annotationsBySource[src.id] ?? [];
+            const meta = [
+              `Type: ${src.sourceType}`,
+              src.year ? `Year: ${src.year}` : null,
+              anns.length > 0 ? `${anns.length} annotation${anns.length !== 1 ? "s" : ""}` : null,
+            ].filter(Boolean).join(" • ");
+
+            return (
+              <div
+                key={src.id}
+                className="flex items-center justify-between px-5 py-4 hover:bg-stone-50 transition-colors group"
+              >
+                {/* Left: title + meta */}
+                <div className="min-w-0 flex-1">
+                  <p className="font-display font-black text-sm text-neo-dark uppercase tracking-tight truncate">
+                    {src.title}
+                  </p>
+                  <p className="text-[11px] font-mono text-stone-400 mt-0.5">{meta}</p>
+                </div>
+
+                {/* Right: CTA */}
+                <button
+                  type="button"
+                  onClick={() => onNavigateToWorkspace(src.id)}
+                  className="shrink-0 ml-6 text-xs font-mono font-bold text-neo-orange hover:text-orange-600 transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  Open Workspace Annotator →
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Audit helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Convert an audit log entry into a human-readable description.
+ * `details` may be null, a primitive, or an object — never render it raw.
+ */
+function formatAuditDetails(action: string, details: unknown): string {
+  if (details === null || details === undefined) {
+    return ACTION_LABELS[action] ?? action.toLowerCase().replace(/_/g, " ");
+  }
+  if (typeof details !== "object") return String(details);
+
+  const d = details as Record<string, unknown>;
+
+  // Provide readable descriptions for known actions
+  switch (action) {
+    case "SOURCE_ADDED":
+      return `Added source${d.textExtracted ? ` · ${d.wordCount ?? 0} words extracted` : " (no text extracted)"}`;
+    case "SOURCE_UPDATED":
+      if (d.action === "qa_processing_complete") return `Indexed for Q&A · ${d.chunksCreated ?? 0} chunks`;
+      if (d.action === "ai_summary_generated") return `AI summary generated (${d.summaryLength ?? "medium"})`;
+      if (d.action === "ai_insights_extracted") return `AI insights extracted · ${d.findingsCount ?? 0} findings`;
+      if (d.action === "extract_and_index_complete") return `Extracted & indexed · ${d.chunksCreated ?? 0} chunks`;
+      if (d.updated) return `Updated: ${Object.keys(d.updated as object).join(", ")}`;
+      return "Source updated";
+    case "FILE_UPLOADED":
+      return "File uploaded";
+    case "MEMBER_ADDED":
+      return `Member added with role ${d.role ?? ""}`;
+    case "MEMBER_REMOVED":
+      return "Member removed";
+    case "ANNOTATION_ADDED":
+      return "Annotation created";
+    case "ANNOTATION_UPDATED":
+      return "Annotation updated";
+    case "ANNOTATION_DELETED":
+      return "Annotation deleted";
+    case "VAULT_CREATED":
+      return "Vault created";
+    case "VAULT_UPDATED":
+      return d.updated ? `Updated: ${Object.keys(d.updated as object).join(", ")}` : "Vault updated";
+    case "VAULT_DELETED":
+      return "Vault deleted";
+    default:
+      return action.toLowerCase().replace(/_/g, " ");
+  }
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  VAULT_CREATED: "Vault created",
+  VAULT_UPDATED: "Vault updated",
+  VAULT_DELETED: "Vault deleted",
+  MEMBER_ADDED: "Member added",
+  MEMBER_REMOVED: "Member removed",
+  MEMBER_ROLE_CHANGED: "Member role changed",
+  FILE_UPLOADED: "File uploaded",
+  FILE_DELETED: "File deleted",
+  SOURCE_ADDED: "Source added",
+  SOURCE_UPDATED: "Source updated",
+  SOURCE_DELETED: "Source deleted",
+  ANNOTATION_ADDED: "Annotation created",
+  ANNOTATION_UPDATED: "Annotation updated",
+  ANNOTATION_DELETED: "Annotation deleted",
+};
 
 function AuditTab({ auditLogs, auditLogsData, auditPage, setAuditPage, auditTypeFilter, setAuditTypeFilter, auditStartDate, setAuditStartDate, auditEndDate, setAuditEndDate, loadAuditLogs, activeVaultId }: any) {
   return (
@@ -668,6 +1067,7 @@ function AuditTab({ auditLogs, auditLogsData, auditPage, setAuditPage, auditType
             <option value="ALL">ALL PROCESSES</option>
             <option value="VAULT">VAULT SECURE BOUNDS</option>
             <option value="MEMBER">PERSONNEL & MEMBERS</option>
+            <option value="FILE">FILE UPLOADS</option>
             <option value="SOURCE">SOURCE RESEARCH NODES</option>
             <option value="ANNOTATION">ANNOTATION & COMMENTS</option>
             <option value="CITATION">CITATION FORMATS</option>
@@ -746,7 +1146,7 @@ function AuditTab({ auditLogs, auditLogsData, auditPage, setAuditPage, auditType
                     {log.user?.name || "Member"}:
                   </span>
                   <span className="text-stone-700 font-sans tracking-tight leading-none text-left">
-                    {log.details}
+                    {formatAuditDetails(log.action, log.details)}
                   </span>
                 </div>
                 <span className="text-[9px] text-stone-600 font-bold shrink-0 font-mono bg-stone-100 border border-stone-200 px-1.5 py-0.5 rounded shadow-[1px_1px_0px_rgba(0,0,0,0.15)]">

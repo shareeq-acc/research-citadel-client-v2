@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
-import { apiFetch } from "@/lib/api";
+import { vaultService, sourceService, annotationService } from "@/services";
 import { Source, Vault, Annotation } from "@/types";
 import { SourceDetailPage } from "@/components/source/SourceDetailPage";
 import { SkeletonSourceDetailPage } from "@/components/shared/Skeleton";
@@ -46,27 +46,23 @@ export default function SourceDetailRoute() {
     async function loadData() {
       try {
         const [vaultRes, srcRes] = await Promise.all([
-          apiFetch(`/api/vault/${vaultId}`),
-          apiFetch(`/api/vault/${vaultId}/source`),
+          vaultService.getVault(vaultId),
+          sourceService.listSources(vaultId),
         ]);
-        const vaultData = await vaultRes.json();
-        const srcData = await srcRes.json();
-
-        if (vaultData.success) {
-          setVault(vaultData.data);
-          setActiveVault(vaultData.data);
+        if (vaultRes.success) {
+          setVault(vaultRes.data);
+          setActiveVault(vaultRes.data);
         }
-        if (srcData.success) {
-          setSources(srcData.data.sources);
-          const found = srcData.data.sources.find((s: Source) => s.id === sourceId);
+        if (srcRes.success) {
+          setSources(srcRes.data.sources);
+          const found = srcRes.data.sources.find((s: Source) => s.id === sourceId);
           if (found) {
             setSource(found);
             setEditedCitation(generateOnTheFlyCitationValue(found, "APA"));
           }
         }
-        const annRes = await apiFetch(`/api/vault/${vaultId}/source/${sourceId}/annotation`);
-        const annData = await annRes.json();
-        if (annData.success) setAnnotations(annData.data);
+        const annRes = await annotationService.listAnnotations(vaultId, sourceId);
+        if (annRes.success) setAnnotations(annRes.data as Annotation[]);
       } catch (err) {
         console.error(err);
       } finally {
@@ -85,9 +81,8 @@ export default function SourceDetailRoute() {
   const handleTriggerQAProcess = async (sid: string) => {
     if (!vault) return;
     try {
-      const res = await apiFetch(`/api/vault/${vault.id}/source/${sid}/process-for-qa`, { method: "POST" });
-      const data = await res.json();
-      if (data.success && source) {
+      const res = await sourceService.processForQa(vault.id, sid);
+      if (res.success && source) {
         const updated = { ...source, chunksProcessed: true };
         setSource(updated);
         setSources((prev) => prev.map((s) => s.id === sid ? { ...s, chunksProcessed: true } : s));

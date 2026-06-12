@@ -40,9 +40,9 @@ const userService = {
    * @param page   - 0-based page index
    * @param limit  - results per page
    */
-  searchUsers(query: string, page = 0, limit = 20) {
+  searchUsers(query: string, page = 1, limit = 20) {
     return get<UserSearchResult>(
-      `/user/all?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`,
+      `/user/all?q=${encodeURIComponent(query)}&page=${Math.max(1, page)}&limit=${limit}`,
     );
   },
 

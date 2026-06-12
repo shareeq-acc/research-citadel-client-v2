@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
-import { apiFetch } from "@/lib/api";
+import { userService } from "@/services";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { SkeletonSettingsPage } from "@/components/shared/Skeleton";
 
@@ -46,24 +46,16 @@ export default function SettingsRoute() {
     if (!profileName || !currentUser) return;
     setProfileLoader(true);
     try {
-      const response = await apiFetch("/api/user/me", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: profileName,
-          avatar: computedProfileAvatar,
-        }),
-      });
-      const data = await response.json();
-      if (data.success) {
+      const res = await userService.updateMe({ name: profileName, avatar: computedProfileAvatar });
+      if (res.success) {
         setCurrentUser({ ...currentUser, name: profileName, avatar: computedProfileAvatar });
         setOkMessage("Profile updated successfully.");
         setTimeout(() => setOkMessage(""), 3000);
       } else {
-        setErrMessage(data.message || "Failed to update profile.");
+        setErrMessage(res.message || "Failed to update profile.");
       }
-    } catch {
-      setErrMessage("Connection error while updating profile.");
+    } catch (err: any) {
+      setErrMessage(err?.message || "Connection error while updating profile.");
     } finally {
       setProfileLoader(false);
     }

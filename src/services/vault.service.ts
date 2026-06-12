@@ -24,12 +24,28 @@ export interface AddMemberPayload {
   role: "CONTRIBUTOR" | "VIEWER";
 }
 
+export interface VaultMember {
+  id: string;
+  role: "OWNER" | "CONTRIBUTOR" | "VIEWER";
+  joinedAt: string | null;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string | null;
+  };
+}
+
 export interface AuditLogsQuery {
   limit?: number;
   offset?: number;
-  /** Maps to the `action` query param on the server (e.g. "SOURCE_ADDED"). Pass "ALL" or omit to skip. */
+  /** Exact AuditAction value (e.g. "SOURCE_ADDED"). Takes priority over category. */
   action?: string;
+  /** Category prefix filter: VAULT | MEMBER | FILE | SOURCE | ANNOTATION | CITATION */
+  category?: string;
+  /** ISO date string — include logs on or after this date */
   startDate?: string;
+  /** ISO date string — include logs on or before this date */
   endDate?: string;
 }
 
@@ -69,13 +85,29 @@ const vaultService = {
     return post<void>(`/vault/${vaultId}/members`, payload);
   },
 
+  /** Get all members of a vault with their role. */
+  getMembers(vaultId: string) {
+    return get<VaultMember[]>(`/vault/${vaultId}/members`);
+  },
+
+  /** Remove a member from the vault (owner only). */
+  removeMember(vaultId: string, userId: string) {
+    return del<{ removed: boolean }>(`/vault/${vaultId}/members/${userId}`);
+  },
+
   /** Fetch vault activity / audit logs. */
   getAuditLogs(vaultId: string, query: AuditLogsQuery = {}) {
     const params = new URLSearchParams();
     if (query.limit !== undefined) params.set("limit", String(query.limit));
     if (query.offset !== undefined) params.set("offset", String(query.offset));
-    // Server uses "action" param, skip if "ALL" or empty
-    if (query.action && query.action !== "ALL") params.set("action", query.action);
+    // Exact action takes priority; otherwise send category for prefix-based filtering
+    if (query.action && query.action !== "ALL") {
+      params.set("action", query.action);
+    } else if (query.category && query.category !== "ALL") {
+      params.set("category", query.category);
+    }
+    if (query.startDate) params.set("startDate", query.startDate);
+    if (query.endDate)   params.set("endDate",   query.endDate);
 
     const qs = params.toString();
     return get<AuditLogsResult>(`/vault/${vaultId}/audit${qs ? `?${qs}` : ""}`);

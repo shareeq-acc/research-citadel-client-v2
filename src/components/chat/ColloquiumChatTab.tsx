@@ -1,364 +1,339 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { apiFetch } from "@/lib/api";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { io, Socket } from "socket.io-client";
 import MarkdownRenderer from "@/components/shared/MarkdownRenderer";
-import { 
-  Send, 
-  Terminal, 
-  HelpCircle, 
-  Reply, 
-  CheckCheck, 
-  Users, 
-  Bot, 
-  Paperclip, 
-  X,
-  FileText,
-  BadgeAlert,
-  Crown,
-  Settings,
-  Search,
-  Radio
+import { chatService, userService } from "@/services";
+import type { ChatMessage, ChatMember } from "@/services/chat.service";
+import { Source, User as AppUser } from "@/types";
+import {
+  Send, Terminal, HelpCircle, Reply, CheckCheck, Users, Bot,
+  X, Crown, Settings, Search, Radio, Trash2, UserPlus,
+  Loader2, AlertCircle,
 } from "lucide-react";
-import { ChatMessage, TypingStatus, User as AppUser, Source } from "@/types";
 
-interface ChatTabProps {
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const WS_URL  = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:8000";
+const WS_NS   = "/collaboration";
+const TYPING_DEBOUNCE_MS = 2500;
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+interface TypingUser { userId: string; userName: string }
+
+interface Props {
   vaultId: string;
   currentUser: AppUser;
   vaultOwnerId: string;
-  vaultMembers: any[];
+  vaultMembers: any[];   // from parent (vault detail members)
   sources: Source[];
 }
 
-export const ColloquiumChatTab: React.FC<ChatTabProps> = ({
-  vaultId,
-  currentUser,
-  vaultOwnerId,
-  vaultMembers,
-  sources
+// ── Component ──────────────────────────────────────────────────────────────────
+
+export const ColloquiumChatTab: React.FC<Props> = ({
+  vaultId, currentUser, vaultOwnerId, vaultMembers, sources,
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [typingUsers, setTypingUsers] = useState<{ userId: string; userName: string }[]>([]);
-  const [inputText, setInputText] = useState("");
-  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showCommandsHelp, setShowCommandsHelp] = useState(false);
-  const [isSending, setIsSending] = useState(false);
+  // ── State ────────────────────────────────────────────────────────────────
+  const [messages,    setMessages]    = useState<ChatMessage[]>([]);
+  const [chatMembers, setChatMembers] = useState<ChatMember[]>([]);
+  const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+  const [inputText,   setInputText]   = useState("");
+  const [replyTo,     setReplyTo]     = useState<ChatMessage | null>(null);
 
-  // Members Management states
-  const [localMembers, setLocalMembers] = useState<any[]>(vaultMembers);
-  const [showManageMembers, setShowManageMembers] = useState(false);
-  const [memberSearchQuery, setMemberSearchQuery] = useState("");
-  const [chatSearchResults, setChatSearchResults] = useState<any[]>([]);
+  const [loadingMsgs,    setLoadingMsgs]    = useState(true);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [sending,        setSending]        = useState(false);
+  const [error,          setError]          = useState("");
 
-  // Sync internal members list when parent updates
+  const [showManage,     setShowManage]     = useState(false);
+  const [showHelp,       setShowHelp]       = useState(false);
+  const [searchQuery,    setSearchQuery]    = useState("");
+  const [searchResults,  setSearchResults]  = useState<any[]>([]);
+
+  // ── Refs ──────────────────────────────────────────────────────────────────
+  const socketRef        = useRef<Socket | null>(null);
+  const messagesEndRef   = useRef<HTMLDivElement>(null);
+  const typingTimer      = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingRef      = useRef(false);
+  /** IDs of messages we sent ourselves — skip them when the socket echoes back. */
+  const ownMessageIds    = useRef<Set<string>>(new Set());
+  const isOwner = currentUser.id === vaultOwnerId;
+
+  // ── Socket.IO setup ───────────────────────────────────────────────────────
   useEffect(() => {
-    setLocalMembers(vaultMembers);
-  }, [vaultMembers]);
+    const socket = io(`${WS_URL}${WS_NS}`, {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+    });
+    socketRef.current = socket;
 
-  // References
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isTypingStateRef = useRef(false);
+    socket.on("connect", () => {
+      socket.emit("joinVault", { vaultId });
+    });
 
-  // Find vault owner name
-  const ownerMember = localMembers.find(m => m.user.id === vaultOwnerId);
-  const vaultOwnerName = ownerMember ? ownerMember.user.name : "Senior Researcher";
-
-  // Check if current user is admin of this vault
-  const isAdmin = currentUser.id === vaultOwnerId || localMembers.some(m => m.user.id === currentUser.id && m.role === "OWNER");
-
-  // Fetch vault members list
-  const fetchVaultMembers = async () => {
-    try {
-      const res = await apiFetch(`/api/vault/${vaultId}`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.data) {
-          setLocalMembers(json.data.members || []);
-        }
+    // New message arrives — skip if we sent it (we already have it from the REST response)
+    socket.on("chat:message", (msg: ChatMessage) => {
+      if (ownMessageIds.current.has(msg.id)) {
+        ownMessageIds.current.delete(msg.id); // clean up
+        return;
       }
-    } catch (e) {
-      console.error("Failed to load vault members in chat panel", e);
-    }
-  };
-
-  // Scholar management handlers
-  const handleSearchScholars = async (query: string) => {
-    setMemberSearchQuery(query);
-    if (query.trim().length < 2) {
-      setChatSearchResults([]);
-      return;
-    }
-    try {
-      const res = await apiFetch(`/api/user/all?q=${query}`);
-      const data = await res.json();
-      if (data.success) {
-        // Filter out those who are already members
-        const currentIds = localMembers.map(m => m.user.id);
-        const filtered = (data.data.users || []).filter((u: any) => !currentIds.includes(u.id));
-        setChatSearchResults(filtered);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleAddScholar = async (targetUserId: string) => {
-    try {
-      const res = await apiFetch(`/api/vault/${vaultId}/members`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: targetUserId, role: "CONTRIBUTOR" })
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
       });
-      const data = await res.json();
-      if (data.success) {
-        setMemberSearchQuery("");
-        setChatSearchResults([]);
-        fetchVaultMembers();
-      } else {
-        alert(data.message || "Failed to authorize collaborator.");
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
+    });
 
-  const handleRemoveScholar = async (targetUserId: string) => {
-    if (!confirm("Are you sure you want to remove this researcher from the vault and colloquium log?")) return;
-    try {
-      const res = await apiFetch(`/api/vault/${vaultId}/members/${targetUserId}`, {
-        method: "DELETE"
-      });
-      const data = await res.json();
-      if (data.success) {
-        fetchVaultMembers();
-      } else {
-        alert(data.message || "Failed to remove scholar.");
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
+    // Message deleted
+    socket.on("chat:message_deleted", ({ messageId }: { messageId: string }) => {
+      setMessages((prev) =>
+        prev.map((m) => m.id === messageId ? { ...m, content: "[Message deleted]" } : m)
+      );
+    });
 
-  // Fetch messages and typing users
-  const fetchChatState = async () => {
-    try {
-      const res = await apiFetch(`/api/vault/${vaultId}/chat`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.data) {
-          setMessages(json.data.messages || []);
-          setTypingUsers(json.data.typingUsers || []);
-        }
-      }
-    } catch (e) {
-      console.error("Failed to fetch Colloquium chat logs", e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Typing indicator
+    socket.on("chat:typing", ({ userId, userName, isTyping }: { userId: string; userName: string; isTyping: boolean }) => {
+      setTypingUsers((prev) =>
+        isTyping
+          ? prev.some((u) => u.userId === userId) ? prev : [...prev, { userId, userName }]
+          : prev.filter((u) => u.userId !== userId)
+      );
+    });
 
-  // Poll for messages and typing statuses
-  useEffect(() => {
-    fetchChatState();
-    const interval = setInterval(fetchChatState, 2000);
-    return () => clearInterval(interval);
+    // Chat membership changes
+    socket.on("chat:member_added",   () => fetchChatMembers());
+    socket.on("chat:member_removed", () => fetchChatMembers());
+
+    return () => {
+      socket.emit("leaveVault", { vaultId });
+      socket.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vaultId]);
 
-  // Scroll to bottom when fresh messages arrive
+  // ── Auto-scroll ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typingUsers]);
 
-  // Handle typing notification
-  const notifyTyping = async (isTyping: boolean) => {
+  // ── Initial data fetch ────────────────────────────────────────────────────
+  const fetchMessages = useCallback(async () => {
     try {
-      await apiFetch(`/api/vault/${vaultId}/chat/typing`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isTyping })
-      });
-      isTypingStateRef.current = isTyping;
-    } catch (err) {
-      console.warn("Failed to dispatch typing heartbeat", err);
+      const res = await chatService.getMessages(vaultId, { limit: 50 });
+      if (res.success) setMessages(res.data);
+    } catch { /* ignore */ } finally {
+      setLoadingMsgs(false);
     }
+  }, [vaultId]);
+
+  const fetchChatMembers = useCallback(async () => {
+    setLoadingMembers(true);
+    try {
+      const res = await chatService.getChatMembers(vaultId);
+      if (res.success) setChatMembers(res.data);
+    } catch { /* ignore */ } finally {
+      setLoadingMembers(false);
+    }
+  }, [vaultId]);
+
+  useEffect(() => {
+    fetchMessages();
+    fetchChatMembers();
+  }, [fetchMessages, fetchChatMembers]);
+
+  // ── Typing indicator ──────────────────────────────────────────────────────
+  const emitTyping = (isTyping: boolean) => {
+    socketRef.current?.emit("chat:typing", { vaultId, isTyping });
+    isTypingRef.current = isTyping;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputText(e.target.value);
-
-    // Typing activity lifecycle
-    if (!isTypingStateRef.current) {
-      notifyTyping(true);
-    }
-
-    if (typingTimerRef.current) {
-      clearTimeout(typingTimerRef.current);
-    }
-
-    typingTimerRef.current = setTimeout(() => {
-      notifyTyping(false);
-    }, 3000);
+    if (!isTypingRef.current) emitTyping(true);
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => emitTyping(false), TYPING_DEBOUNCE_MS);
   };
 
-  // Submit new message
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!inputText.trim() || isSending) return;
+  // ── Send message ──────────────────────────────────────────────────────────
+  const handleSend = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const text = inputText.trim();
+    if (!text || sending) return;
 
-    setIsSending(true);
-    const contentToSend = inputText;
+    setSending(true);
+    setError("");
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    emitTyping(false);
+
+    const pendingReplyTo = replyTo;
     setInputText("");
-
-    // Clear typing indicator and timer
-    if (typingTimerRef.current) {
-      clearTimeout(typingTimerRef.current);
-    }
-    await notifyTyping(false);
+    setReplyTo(null);
 
     try {
-      const res = await apiFetch(`/api/vault/${vaultId}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: contentToSend,
-          replyToId: replyTo?.id || undefined
-        })
+      const res = await chatService.sendMessage(vaultId, {
+        content: text,
+        replyToId: pendingReplyTo?.id,
       });
-
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success) {
-          setReplyTo(null);
-          // Instantly refresh state
-          fetchChatState();
-        }
+      if (res.success) {
+        // Register the real id so the socket echo is ignored by other clients
+        ownMessageIds.current.add(res.data.id);
+        // Add confirmed message directly — no optimistic placeholder needed
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === res.data.id)) return prev;
+          return [...prev, res.data];
+        });
+      } else {
+        setError(res.message || "Failed to send message.");
+        // Restore input so user can retry
+        setInputText(text);
+        setReplyTo(pendingReplyTo);
       }
-    } catch (err) {
-      console.error("Failed to send Colloquium message", err);
+    } catch (err: any) {
+      setError(err?.message || "Network error.");
+      setInputText(text);
+      setReplyTo(pendingReplyTo);
     } finally {
-      setIsSending(false);
+      setSending(false);
     }
   };
 
-  // Click on quick command to pre-fill input
-  const applyQuickCommand = (cmd: string) => {
-    setInputText(cmd);
-    setShowCommandsHelp(false);
+  // ── Delete message ────────────────────────────────────────────────────────
+  const handleDeleteMessage = async (msgId: string) => {
+    if (!confirm("Delete this message?")) return;
+    try {
+      await chatService.deleteMessage(vaultId, msgId);
+    } catch { /* socket event handles UI update */ }
   };
 
+  // ── Manage members ────────────────────────────────────────────────────────
+  const handleSearchUsers = async (q: string) => {
+    setSearchQuery(q);
+    if (q.trim().length < 2) { setSearchResults([]); return; }
+    try {
+      const res = await userService.searchUsers(q, 1, 20);
+      if (res.success) {
+        const memberIds = new Set(chatMembers.map((m) => m.user.id));
+        setSearchResults((res.data.users ?? []).filter((u: any) => !memberIds.has(u.id)));
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handleAddMember = async (userId: string) => {
+    try {
+      await chatService.addChatMember(vaultId, userId);
+      setSearchQuery(""); setSearchResults([]);
+    } catch (err: any) {
+      setError(err?.message || "Failed to add member.");
+    }
+  };
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!confirm("Remove this researcher from the chat?")) return;
+    try {
+      await chatService.removeChatMember(vaultId, userId);
+    } catch (err: any) {
+      setError(err?.message || "Failed to remove member.");
+    }
+  };
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const applyCommand = (cmd: string) => { setInputText(cmd); setShowHelp(false); };
+  const isMine = (msg: ChatMessage) => msg.senderId === currentUser.id;
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div id="colloquium-workspace" className="bg-stone-50 rounded-sm border-4 border-neo-dark p-4 shadow-[4px_4px_0px_#000] flex flex-col h-[650px]">
-      
-      {/* Header Panel */}
-      <div className="flex flex-col sm:flex-row border-b-4 border-neo-dark pb-3 items-start sm:items-center justify-between bg-white px-3 py-2 -mx-4 -mt-4 border-t-0 border-l-0 border-r-0 rounded-t-xs gap-3">
+    <div className="bg-stone-50 rounded-sm border-4 border-neo-dark p-4 shadow-[4px_4px_0px_#000] flex flex-col h-[650px]">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between border-b-4 border-neo-dark pb-3 bg-white px-3 py-2 -mx-4 -mt-4 rounded-t-xs gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          {/* Desktop LIVE COMM Badge */}
-          <div className="hidden sm:block p-1 px-2 bg-neo-yellow border-2 border-neo-dark rounded text-[10px] font-black font-mono select-none">
+          <div className="p-1 px-2 bg-neo-yellow border-2 border-neo-dark rounded text-[10px] font-black font-mono select-none hidden sm:block">
             LIVE COMM
           </div>
-          {/* Mobile Live Indicator Icon */}
-          <div className="block sm:hidden p-1 bg-neo-yellow border-2 border-neo-dark rounded shadow-[1px_1px_0px_#000] select-none animate-pulse flex items-center justify-center" title="Live Connection Active">
-            <Radio className="w-4 h-4 text-neo-dark" />
-          </div>
+          <Radio className="w-4 h-4 text-neo-dark sm:hidden animate-pulse" />
           <div>
-            <h3 className="font-display font-black text-sm uppercase tracking-wide text-neo-dark flex items-center gap-1.5 leading-none">
-              Chat
-            </h3>
+            <h3 className="font-display font-black text-sm uppercase tracking-wide text-neo-dark leading-none">Chat</h3>
             <p className="text-[9px] text-stone-500 font-mono mt-1 flex items-center gap-1">
               <Crown className="w-3 h-3 text-neo-orange" />
-              Vault Assembly Admin: <span className="underline font-bold text-stone-700">{vaultOwnerName}</span>
+              {chatMembers.length} member{chatMembers.length !== 1 ? "s" : ""} · {messages.length} messages
             </p>
           </div>
         </div>
 
-        <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-          {isAdmin && (
+        <div className="flex items-center gap-2">
+          {isOwner && (
             <button
-              onClick={() => {
-                setShowManageMembers(prev => !prev);
-                setShowCommandsHelp(false);
-              }}
-              className="flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 bg-amber-100 border-2 border-neo-dark text-neo-dark font-display font-black text-[10px] uppercase rounded-sm shadow-[1.5px_1.5px_0px_#000] hover:bg-amber-200 transition-all cursor-pointer"
+              onClick={() => { setShowManage((v) => !v); setShowHelp(false); }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-100 border-2 border-neo-dark text-neo-dark font-display font-black text-[10px] uppercase rounded-sm shadow-[1.5px_1.5px_0px_#000] hover:bg-amber-200 cursor-pointer transition-all"
             >
               <Settings className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Manage </span>Members
+              Members
             </button>
           )}
-          {/* Help / Commands Toggle */}
           <button
-            onClick={() => {
-              setShowCommandsHelp(prev => !prev);
-              setShowManageMembers(false);
-            }}
-            className="flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1.5 bg-sky-200 border-2 border-neo-dark text-neo-dark font-display font-black text-[10px] uppercase rounded-sm shadow-[1px_1px_0px_#000] hover:bg-sky-300 transition-all cursor-pointer"
+            onClick={() => { setShowHelp((v) => !v); setShowManage(false); }}
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-sky-200 border-2 border-neo-dark text-neo-dark font-display font-black text-[10px] uppercase rounded-sm shadow-[1px_1px_0px_#000] hover:bg-sky-300 cursor-pointer transition-all"
           >
             <Terminal className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Terminal </span>Directives
+            <span className="hidden sm:inline">Directives</span>
           </button>
         </div>
       </div>
 
-      {/* Main Chat Interface Grid */}
+      {/* ── Error banner ── */}
+      {error && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-rose-50 border-b-2 border-rose-400 text-rose-700 text-xs font-mono font-bold">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+          {error}
+          <button className="ml-auto" onClick={() => setError("")}><X className="w-3 h-3" /></button>
+        </div>
+      )}
+
+      {/* ── Main content ── */}
       <div className="flex-1 flex flex-col min-h-0 pt-3">
-        
-        {/* Messages feed viewport */}
         <div className="flex-1 flex flex-col bg-white border-2 border-neo-dark rounded shadow-[2px_2px_0px_#000] p-3 min-h-0">
-          
-          {/* MEMBERS MANAGEMENT OVERLAY CONSOLE */}
-          {showManageMembers && (
-            <div className="p-4 mb-3 bg-stone-50 border-2 border-neo-dark rounded-sm text-neo-dark font-sans text-xs space-y-4 shadow-[2px_2px_0px_#000] relative max-h-96 overflow-y-auto">
-              <button 
-                type="button"
-                onClick={() => setShowManageMembers(false)}
-                className="absolute top-2.5 right-2.5 text-stone-500 hover:text-neo-dark cursor-pointer p-1 rounded hover:bg-stone-200"
-              >
-                <X className="w-4 h-4" />
+
+          {/* ── Manage members overlay ── */}
+          {showManage && (
+            <div className="p-4 mb-3 bg-stone-50 border-2 border-neo-dark rounded-sm space-y-4 shadow-[2px_2px_0px_#000] relative max-h-96 overflow-y-auto">
+              <button onClick={() => setShowManage(false)} className="absolute top-2.5 right-2.5 p-1 rounded hover:bg-stone-200 cursor-pointer">
+                <X className="w-4 h-4 text-stone-500" />
               </button>
-              
+
               <div className="border-b-2 border-neo-dark pb-2">
-                <h4 className="font-display font-black text-xs uppercase text-neo-dark flex items-center gap-1.5">
-                  <Settings className="w-4 h-4 text-emerald-600 animate-spin-slow" />
-                  MEMBER CONFIGURATION
+                <h4 className="font-display font-black text-xs uppercase flex items-center gap-1.5">
+                  <Settings className="w-4 h-4 text-emerald-600" /> Member Configuration
                 </h4>
                 <p className="text-[10px] text-stone-500 font-mono mt-0.5">
-                  Inscribe credentials for team researchers or expunge access levels.
+                  Only vault members can be added. Owner is always present.
                 </p>
               </div>
 
-              {/* Add Member inline form */}
+              {/* Add member search */}
               <div className="bg-white p-3 border-2 border-neo-dark rounded-xs space-y-2">
-                <h5 className="font-bold text-[9px] font-mono text-stone-500 uppercase flex items-center gap-1">
-                  <span>➕ Authorize New Collaborator</span>
-                </h5>
+                <h5 className="font-bold text-[9px] font-mono text-stone-500 uppercase">➕ Add Member to Chat</h5>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 text-stone-400 w-3.5 h-3.5" />
                   <input
                     type="text"
-                    placeholder="Search query name (e.g. Adrian)..."
-                    value={memberSearchQuery}
-                    onChange={(e) => handleSearchScholars(e.target.value)}
+                    placeholder="Search vault members…"
+                    value={searchQuery}
+                    onChange={(e) => handleSearchUsers(e.target.value)}
                     className="w-full text-xs p-1.5 pl-8 border-2 border-neo-dark rounded focus:outline-none font-mono"
                   />
                 </div>
-
-                {/* Search Results */}
-                {chatSearchResults.length > 0 && (
-                  <div className="border-2 border-neo-dark rounded bg-stone-50 divide-y-2 divide-neo-dark overflow-hidden max-h-[140px] overflow-y-auto mt-2">
-                    {chatSearchResults.map((usr) => (
-                      <div key={usr.id} className="p-2 flex justify-between items-center bg-white hover:bg-amber-50">
+                {searchResults.length > 0 && (
+                  <div className="border-2 border-neo-dark rounded bg-stone-50 divide-y-2 divide-neo-dark max-h-32 overflow-y-auto">
+                    {searchResults.map((u: any) => (
+                      <div key={u.id} className="p-2 flex justify-between items-center bg-white hover:bg-amber-50">
                         <div className="font-mono text-[10px]">
-                          <span className="font-black text-neo-dark block">{usr.name}</span>
-                          <span className="text-[9px] text-stone-400 block break-all">{usr.email}</span>
+                          <span className="font-black text-neo-dark block">{u.name}</span>
+                          <span className="text-[9px] text-stone-400 break-all">{u.email}</span>
                         </div>
                         <button
-                          type="button"
-                          onClick={() => handleAddScholar(usr.id)}
-                          className="bg-neo-yellow border-2 border-neo-dark px-2 py-1 rounded-sm text-[9px] shadow-[1px_1px_0px_#000] hover:bg-yellow-400 font-bold font-mono cursor-pointer"
+                          onClick={() => handleAddMember(u.id)}
+                          className="bg-neo-yellow border-2 border-neo-dark px-2 py-1 rounded-sm text-[9px] shadow-[1px_1px_0px_#000] font-bold font-mono cursor-pointer hover:bg-yellow-300"
                         >
                           Add
                         </button>
@@ -368,39 +343,36 @@ export const ColloquiumChatTab: React.FC<ChatTabProps> = ({
                 )}
               </div>
 
-              {/* Personnel list with removal options */}
+              {/* Current chat members */}
               <div className="space-y-2">
-                <h5 className="font-bold text-[9px] font-mono text-stone-500 uppercase">Active Workspace Collaborators</h5>
-                <div className="bg-white border-2 border-neo-dark rounded divide-y divide-stone-100 max-h-[220px] overflow-y-auto">
-                  {localMembers.map((m: any) => {
-                    const isSelf = m.user.id === currentUser.id;
-                    const isOwner = m.user.id === vaultOwnerId;
+                <h5 className="font-bold text-[9px] font-mono text-stone-500 uppercase flex items-center gap-1">
+                  <Users className="w-3 h-3" /> Chat Members ({chatMembers.length})
+                  {loadingMembers && <Loader2 className="w-3 h-3 animate-spin ml-1" />}
+                </h5>
+                <div className="bg-white border-2 border-neo-dark rounded divide-y divide-stone-100 max-h-52 overflow-y-auto">
+                  {chatMembers.map((m) => {
+                    const isSelf  = m.user.id === currentUser.id;
+                    const isVaultOwner = m.user.id === vaultOwnerId;
                     return (
                       <div key={m.id} className="p-2 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 min-w-0">
                           <img
-                            src={m.user.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${m.user.name}`}
+                            src={m.user.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(m.user.name)}`}
                             alt={m.user.name}
                             className="w-7 h-7 rounded-full border border-neo-dark bg-stone-50 object-cover shrink-0"
                           />
                           <div className="min-w-0">
-                            <span className="font-bold text-xs text-neo-dark block uppercase truncate leading-tight">{m.user.name}</span>
-                            <span className="text-[9px] text-stone-400 font-mono block leading-none">{m.role}</span>
+                            <span className="font-bold text-xs text-neo-dark block truncate">{m.user.name}</span>
+                            <span className="text-[9px] text-stone-400 font-mono">{isVaultOwner ? "Owner" : isSelf ? "You" : "Member"}</span>
                           </div>
                         </div>
-
-                        {!isSelf && !isOwner ? (
+                        {!isSelf && !isVaultOwner && (
                           <button
-                            type="button"
-                            onClick={() => handleRemoveScholar(m.user.id)}
-                            className="text-red-600 hover:text-white bg-red-50 hover:bg-red-500 border border-red-300 hover:border-neo-dark rounded px-2 py-0.5 text-[9px] font-mono font-bold transition-all whitespace-nowrap"
+                            onClick={() => handleRemoveMember(m.user.id)}
+                            className="text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-500 border border-rose-300 hover:border-neo-dark rounded px-2 py-0.5 text-[9px] font-mono font-bold transition-all cursor-pointer whitespace-nowrap"
                           >
-                            Expunge
+                            Remove
                           </button>
-                        ) : (
-                          <span className="text-[9px] text-stone-400 italic font-mono shrink-0">
-                            {isOwner ? "Owner" : "You"}
-                          </span>
                         )}
                       </div>
                     );
@@ -410,209 +382,138 @@ export const ColloquiumChatTab: React.FC<ChatTabProps> = ({
             </div>
           )}
 
-          {/* HELP OVERLAY CONSOLE */}
-          {showCommandsHelp && (
+          {/* ── Help overlay ── */}
+          {showHelp && (
             <div className="p-3 mb-3 bg-stone-900 border-2 border-neo-dark rounded-sm text-amber-400 font-mono text-[10px] space-y-2 max-h-48 overflow-y-auto shadow-[2px_2px_0px_#000] relative">
-              <button 
-                onClick={() => setShowCommandsHelp(false)}
-                className="absolute top-2.5 right-2.5 text-stone-500 hover:text-white"
-              >
+              <button onClick={() => setShowHelp(false)} className="absolute top-2.5 right-2.5 text-stone-500 hover:text-white">
                 <X className="w-4 h-4" />
               </button>
               <h4 className="font-extrabold text-white flex items-center gap-1 border-b border-stone-700 pb-1">
-                <HelpCircle className="w-4 h-4 text-sky-400" />
-                SCHOLAR COLLOQUIUM SYSTEM DIRECTIVES
+                <HelpCircle className="w-4 h-4 text-sky-400" /> COLLOQUIUM DIRECTIVES
               </h4>
-              <p className="text-stone-300">Type or click these inside the prompt utility to coordinate existing vault indexing:</p>
               <div className="grid grid-cols-1 gap-1.5">
-                <button 
-                  onClick={() => applyQuickCommand("/help")}
-                  className="text-left py-1 px-1.5 bg-stone-800 hover:bg-stone-700 rounded text-[9px] flex justify-between items-center group cursor-pointer"
-                >
-                  <span><code>/help</code> - Show commands support card</span>
-                  <span className="text-stone-500 group-hover:text-amber-400 font-bold">&gt;&gt; Use</span>
-                </button>
-                <button 
-                  onClick={() => applyQuickCommand("/sources")}
-                  className="text-left py-1 px-1.5 bg-stone-800 hover:bg-stone-700 rounded text-[9px] flex justify-between items-center group cursor-pointer"
-                >
-                  <span><code>/sources</code> - List citations inventory indexed in this vault</span>
-                  <span className="text-stone-500 group-hover:text-amber-400 font-bold">&gt;&gt; Use</span>
-                </button>
-                <button 
-                  onClick={() => applyQuickCommand("/refer s-1")}
-                  className="text-left py-1 px-1.5 bg-stone-800 hover:bg-stone-700 rounded text-[9px] flex justify-between items-center group cursor-pointer"
-                >
-                  <span><code>/refer [id]</code> - Embed high-resolution citation reference attachment link</span>
-                  <span className="text-stone-500 group-hover:text-amber-400 font-bold">&gt;&gt; Use</span>
-                </button>
-                <button 
-                  onClick={() => applyQuickCommand("/admin")}
-                  className="text-left py-1 px-1.5 bg-stone-800 hover:bg-stone-700 rounded text-[9px] flex justify-between items-center group cursor-pointer"
-                >
-                  <span><code>/admin</code> - Disclaim administrator credentials context</span>
-                  <span className="text-stone-500 group-hover:text-amber-400 font-bold">&gt;&gt; Use</span>
-                </button>
-                <button 
-                  onClick={() => applyQuickCommand("/stats")}
-                  className="text-left py-1 px-1.5 bg-stone-800 hover:bg-stone-700 rounded text-[9px] flex justify-between items-center group cursor-pointer"
-                >
-                  <span><code>/stats</code> - Display quantitative database & member indicators</span>
-                  <span className="text-stone-500 group-hover:text-amber-400 font-bold">&gt;&gt; Use</span>
-                </button>
+                {[
+                  ["/help",    "Show this help panel"],
+                  ["/sources", "List sources in this vault"],
+                  ["/admin",   "Show your admin status"],
+                ].map(([cmd, desc]) => (
+                  <button key={cmd} onClick={() => applyCommand(cmd)}
+                    className="text-left py-1 px-1.5 bg-stone-800 hover:bg-stone-700 rounded text-[9px] flex justify-between items-center group cursor-pointer">
+                    <span><code>{cmd}</code> — {desc}</span>
+                    <span className="text-stone-500 group-hover:text-amber-400 font-bold">&gt;&gt; Use</span>
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Messages scroll content */}
-          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
-            {isLoading ? (
-              <div className="h-full flex flex-col justify-center items-center text-stone-400 font-mono text-[10px]">
-                <div className="w-6 h-6 border-2 border-stone-800 border-t-transparent rounded-full animate-spin mb-2" />
-                Loading colloq archives...
+          {/* ── Messages feed ── */}
+          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+            {loadingMsgs ? (
+              <div className="h-full flex flex-col justify-center items-center text-stone-400 font-mono text-[10px] gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Loading messages…
               </div>
             ) : messages.length === 0 ? (
-              <div className="h-full flex flex-col justify-center items-center p-8 text-center text-stone-400 font-sans text-xs border border-dashed border-stone-200 bg-stone-50 rounded">
+              <div className="h-full flex flex-col justify-center items-center p-8 text-center text-stone-400 border border-dashed border-stone-200 bg-stone-50 rounded">
                 <Users className="w-8 h-8 text-stone-300 mb-2" />
-                <p className="font-semibold text-stone-600 font-display">No Colloquium history recorded</p>
-                <p className="text-[10px] text-stone-400 max-w-xs mt-1">
-                  Start the dialogue! Only active scholars authorized in this vault can review this communications ledger.
-                </p>
+                <p className="font-semibold text-stone-600 font-display text-sm">No messages yet</p>
+                <p className="text-[10px] text-stone-400 max-w-xs mt-1">Start the conversation — only chat members can see this channel.</p>
               </div>
             ) : (
               messages.map((msg) => {
-                const isCurrentUser = msg.userId === currentUser.id;
-                const isBot = msg.userId === "u-bot";
-                const isSystemSimMsg = msg.id.startsWith("msg-sim");
-                
-                // Get read lists
-                const otherReaders = msg.readBy.filter(id => id !== msg.userId);
-                const readerNames = otherReaders.map(id => {
-                  if (id === currentUser.id) return "You";
-                  const m = localMembers.find(v => v.user.id === id);
-                  return m ? m.user.name.split(" ")[0] : "Scholar";
-                });
+                const mine = isMine(msg);
+                const canDelete = mine || isOwner;
+                const readers = msg.readBy.filter((id) => id !== msg.senderId);
 
                 return (
-                  <div 
-                    key={msg.id} 
-                    className={`flex items-start gap-2.5 group ${isCurrentUser ? "flex-row-reverse" : "flex-row"}`}
-                  >
-                    {/* User Avatar */}
-                    <div className="shrink-0 relative">
-                      {isBot ? (
-                        <div className="w-7 h-7 bg-stone-800 text-sky-300 border border-neo-dark rounded-full flex items-center justify-center shadow-[1px_1px_0px_#000]">
-                          <Bot className="w-3.5 h-3.5" />
-                        </div>
-                      ) : msg.userAvatar ? (
-                        <img 
-                          src={msg.userAvatar} 
-                          alt={msg.userName} 
-                          className="w-7 h-7 border border-neo-dark rounded-full object-cover shadow-[1px_1px_0px_#000]"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="w-7 h-7 bg-stone-200 text-stone-700 border border-neo-dark rounded-full font-bold font-mono text-xs flex items-center justify-center shadow-[1px_1px_0px_#000]">
-                          {msg.userName.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
+                  <div key={msg.id} className={`flex items-start gap-2.5 group ${mine ? "flex-row-reverse" : "flex-row"}`}>
+                    {/* Avatar */}
+                    <img
+                      src={msg.sender.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(msg.sender.name)}`}
+                      alt={msg.sender.name}
+                      className="w-7 h-7 border border-neo-dark rounded-full object-cover shrink-0 shadow-[1px_1px_0px_#000]"
+                    />
 
-                    {/* Chat Bubble Container */}
-                    <div className={`max-w-[75%] flex flex-col ${isCurrentUser ? "items-end" : "items-start"}`}>
-                      
-                      {/* Meta context info */}
-                      <span className="text-[9px] text-stone-500 font-mono mb-0.5 select-none px-1">
-                        {msg.userName} • {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {/* Bubble */}
+                    <div className={`max-w-[75%] flex flex-col ${mine ? "items-end" : "items-start"}`}>
+                      <span className="text-[9px] text-stone-500 font-mono mb-0.5 px-1">
+                        {msg.sender.name} · {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </span>
 
-                      {/* Thread Replies snippet */}
+                      {/* Reply snippet */}
                       {msg.replyToId && (
-                        <div className="px-2 py-1 mb-1 bg-stone-100 border-l-2 border-neo-orange rounded-r font-sans text-[10px] text-stone-600 max-w-full truncate shadow-xs">
-                          <span className="font-bold text-neo-dark block text-[9px] leading-none mb-0.5">
-                            ↳ Replying to @{msg.replyToUser || "Scholar"}
-                          </span>
+                        <div className="px-2 py-1 mb-1 bg-stone-100 border-l-2 border-neo-orange rounded-r text-[10px] text-stone-600 max-w-full truncate">
+                          <span className="font-bold text-neo-dark block text-[9px] mb-0.5">↳ @{msg.replyToUser}</span>
                           "{msg.replyToText}"
                         </div>
                       )}
 
-                      {/* Bubble content */}
-                      <div className={`p-2.5 rounded border border-neo-dark ${
-                        isBot 
-                          ? "bg-amber-50 text-stone-800 font-sans text-[11px] prose shadow-[1px_1px_0px_#000] leading-relaxed"
-                          : isCurrentUser
-                            ? "bg-neo-yellow text-neo-dark font-sans text-xs font-medium shadow-[1.5px_1.5px_0px_#000]"
-                            : isSystemSimMsg
-                              ? "bg-emerald-50 text-stone-800 font-sans text-xs border-emerald-500 shadow-[1.5px_1.5px_0px_#10B981]"
-                              : "bg-stone-50 text-neo-dark font-sans text-xs shadow-[1.5px_1.5px_0px_#000]"
+                      <div className={`p-2.5 rounded border border-neo-dark text-xs font-sans ${
+                        mine
+                          ? "bg-neo-yellow text-neo-dark shadow-[1.5px_1.5px_0px_#000]"
+                          : "bg-stone-50 text-neo-dark shadow-[1.5px_1.5px_0px_#000]"
                       }`}>
                         <MarkdownRenderer content={msg.content} />
                       </div>
 
-                      {/* Read Receipts & Reply Action Bar */}
-                      <div className="flex items-center gap-2 mt-1 px-1 text-[8px] font-mono text-stone-400 select-none">
-                        {isCurrentUser && readerNames.length > 0 && (
+                      {/* Actions */}
+                      <div className={`flex items-center gap-2 mt-1 px-1 text-[8px] font-mono text-stone-400 select-none opacity-0 group-hover:opacity-100 transition-opacity ${mine ? "flex-row-reverse" : ""}`}>
+                        {mine && readers.length > 0 && (
                           <span className="flex items-center gap-0.5 text-stone-400">
-                            <CheckCheck className="w-3 h-3 text-sky-500 inline-block" /> 
-                            Seen by: {readerNames.join(", ")}
+                            <CheckCheck className="w-3 h-3 text-sky-500" />
+                            Seen by {readers.length}
                           </span>
                         )}
-
-                        {isCurrentUser && readerNames.length === 0 && (
-                          <span className="text-stone-300">Sent (Unread)</span>
-                        )}
-
-                        {!isBot && (
+                        <button
+                          onClick={() => setReplyTo(msg)}
+                          className="flex items-center gap-0.5 text-stone-400 hover:text-neo-orange cursor-pointer font-bold"
+                        >
+                          <Reply className="w-2.5 h-2.5" /> Reply
+                        </button>
+                        {canDelete && (
                           <button
-                            onClick={() => setReplyTo(msg)}
-                            className="text-stone-400 hover:text-neo-orange font-bold flex items-center gap-0.5 transition-colors cursor-pointer"
+                            onClick={() => handleDeleteMessage(msg.id)}
+                            className="flex items-center gap-0.5 text-stone-400 hover:text-rose-500 cursor-pointer"
                           >
-                            <Reply className="w-2.5 h-2.5 inline-block" /> Reply
+                            <Trash2 className="w-2.5 h-2.5" /> Delete
                           </button>
                         )}
                       </div>
-
                     </div>
                   </div>
                 );
               })
             )}
 
-            {/* Bouncing Typing indicator */}
+            {/* Typing indicator */}
             {typingUsers.length > 0 && (
-              <div className="flex items-center gap-2 bg-stone-100 p-2 border-2 border-neo-dark rounded-sm max-w-xs animate-pulse">
+              <div className="flex items-center gap-2 p-2 border-2 border-neo-dark rounded-sm bg-stone-100 max-w-xs animate-pulse">
                 <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 bg-stone-600 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-1.5 h-1.5 bg-stone-600 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-1.5 h-1.5 bg-stone-600 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  {[0, 150, 300].map((d) => (
+                    <span key={d} className="w-1.5 h-1.5 bg-stone-600 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                  ))}
                 </div>
                 <span className="text-[10px] font-mono text-stone-600">
-                  {typingUsers.map(u => u.userName.split(" ")[0]).join(", ")} {typingUsers.length === 1 ? 'is formulating' : 'are formulating'}...
+                  {typingUsers.map((u) => u.userName.split(" ")[0]).join(", ")} {typingUsers.length === 1 ? "is" : "are"} typing…
                 </span>
               </div>
             )}
-            
-            <div ref={chatEndRef} />
+
+            <div ref={messagesEndRef} />
           </div>
 
-          {/* Chat text input and triggers form */}
-          <form onSubmit={handleSendMessage} className="mt-3 border-t-2 border-neo-dark pt-3">
-            {/* Thread Replies active indicator bar */}
+          {/* ── Input form ── */}
+          <form onSubmit={handleSend} className="mt-3 border-t-2 border-neo-dark pt-3">
             {replyTo && (
-              <div className="flex items-center justify-between p-1.5 px-2 mb-2 bg-[#FF7F50]/15 border border-neo-dark rounded-sm text-[10px] font-mono gap-2 w-full min-w-0">
-                <span className="text-neo-dark flex items-center gap-1 min-w-0 flex-1">
-                  <Reply className="w-3.5 h-3.5 text-neo-dark shrink-0" />
-                  <span className="shrink-0">Replying to <strong className="text-stone-800">@{replyTo.userName}</strong>:</span>
-                  <span className="text-stone-600 italic truncate ml-1 flex-1 min-w-0 max-w-[120px] sm:max-w-[400px]">
-                    "{replyTo.content}"
-                  </span>
+              <div className="flex items-center justify-between p-1.5 px-2 mb-2 bg-orange-50 border border-neo-dark rounded-sm text-[10px] font-mono gap-2">
+                <span className="flex items-center gap-1 min-w-0 flex-1 text-neo-dark">
+                  <Reply className="w-3.5 h-3.5 shrink-0" />
+                  Replying to <strong className="mx-0.5">@{replyTo.sender.name}:</strong>
+                  <span className="italic text-stone-600 truncate max-w-[200px]">"{replyTo.content.slice(0, 80)}"</span>
                 </span>
-                <button 
-                  type="button" 
-                  onClick={() => setReplyTo(null)}
-                  className="p-0.5 bg-white border border-neo-dark rounded hover:bg-stone-100 shrink-0"
-                >
-                  <X className="w-3 h-3 text-neo-dark" />
+                <button type="button" onClick={() => setReplyTo(null)} className="p-0.5 border border-neo-dark rounded hover:bg-stone-100 shrink-0">
+                  <X className="w-3 h-3" />
                 </button>
               </div>
             )}
@@ -620,26 +521,23 @@ export const ColloquiumChatTab: React.FC<ChatTabProps> = ({
             <div className="flex gap-2">
               <input
                 type="text"
-                placeholder={replyTo ? "Formulate a reply thread..." : "Formulate chat message or run direct command (e.g., /sources)..."}
                 value={inputText}
                 onChange={handleInputChange}
-                className="flex-1 px-3 py-2 text-xs border-2 border-neo-dark rounded-sm focus:outline-none focus:ring-2 focus:ring-neo-yellow bg-stone-50 font-sans"
+                placeholder={replyTo ? "Write your reply…" : "Message the channel…"}
+                className="flex-1 px-3 py-2 text-xs border-2 border-neo-dark rounded-sm focus:outline-none bg-stone-50 font-sans"
               />
               <button
                 type="submit"
-                disabled={!inputText.trim() || isSending}
-                className="px-2.5 sm:px-4 py-2 bg-neo-dark text-white font-display font-extrabold text-xs uppercase rounded-sm shadow-[2px_2px_0px_#FFA500] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_#000] disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none disabled:translate-none transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+                disabled={!inputText.trim() || sending}
+                className="px-3 sm:px-4 py-2 bg-neo-dark text-white font-display font-extrabold text-xs uppercase rounded-sm shadow-[2px_2px_0px_#FFA500] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_#000] disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none transition-all cursor-pointer flex items-center gap-1.5"
               >
-                <Send className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Dispatch</span>
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                <span className="hidden sm:inline">Send</span>
               </button>
             </div>
           </form>
-
         </div>
-
       </div>
-
     </div>
   );
 };
