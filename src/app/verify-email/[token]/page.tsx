@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState, useRef, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Library, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { authService } from "@/services";
@@ -20,6 +20,9 @@ function VerifyEmailContent() {
   const { currentUser, setCurrentUser } = useApp();
 
   const token = params.token as string;
+  const currentUserIdRef = useRef(currentUser?.id);
+  currentUserIdRef.current = currentUser?.id;
+  const verifyStartedRef = useRef(false);
 
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
@@ -31,18 +34,21 @@ function VerifyEmailContent() {
       return;
     }
 
+    if (verifyStartedRef.current) return;
+    verifyStartedRef.current = true;
+
+    let redirectTimer: ReturnType<typeof setTimeout> | undefined;
+
     authService
       .confirmEmailVerification(token)
       .then((res) => {
         if (res.success) {
           setStatus("success");
           setMessage(res.message || "Email verified successfully!");
-          if (res.data?.user) {
-            if (currentUser?.id === res.data.user.id) {
-              setCurrentUser(res.data.user);
-            }
+          if (res.data?.user && currentUserIdRef.current === res.data.user.id) {
+            setCurrentUser(res.data.user);
           }
-          setTimeout(() => router.push("/dashboard"), 2500);
+          redirectTimer = setTimeout(() => router.push("/dashboard"), 2500);
         } else {
           setStatus("error");
           setMessage(res.message || "Verification failed.");
@@ -52,7 +58,11 @@ function VerifyEmailContent() {
         setStatus("error");
         setMessage(extractMessage(err, "Invalid or expired verification link."));
       });
-  }, [token, currentUser?.id, setCurrentUser, router]);
+
+    return () => {
+      if (redirectTimer) clearTimeout(redirectTimer);
+    };
+  }, [token, setCurrentUser, router]);
 
   return (
     <div className="min-h-screen bg-neo-bg flex flex-col justify-center items-center p-4">
