@@ -3,62 +3,58 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
-import { apiFetch } from "@/lib/api";
+import { vaultService, sourceService, annotationService } from "@/services";
+import { io, Socket } from "socket.io-client";
 import { Source, Vault, Annotation } from "@/types";
 import { AnnotationDetailPage } from "@/components/source/AnnotationDetailPage";
 import { SkeletonAnnotationDetailPage } from "@/components/shared/Skeleton";
+
+const WS_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:8000";
+const WS_NS  = "/collaboration";
 
 export default function AnnotationDetailRoute() {
   const params = useParams();
   const router = useRouter();
   const { currentUser, setActiveVault, setSources, setAnnotations } = useApp();
 
-  const vaultId = params.vaultId as string;
-  const sourceId = params.sourceId as string;
+  const vaultId      = params.vaultId      as string;
+  const sourceId     = params.sourceId     as string;
   const annotationId = params.annotationId as string;
 
-  const [vault, setVault] = useState<Vault | null>(null);
-  const [source, setSource] = useState<Source | null>(null);
-  const [annotation, setAnnotation] = useState<Annotation | null>(null);
-  const [annotations, setLocalAnnotations] = useState<Annotation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [vault,            setVault]            = useState<Vault | null>(null);
+  const [source,           setSource]           = useState<Source | null>(null);
+  const [annotation,       setAnnotation]       = useState<Annotation | null>(null);
+  const [annotations,      setLocalAnnotations] = useState<Annotation[]>([]);
+  const [loading,          setLoading]          = useState(true);
 
-  const [workspaceRefPaneTab, setWorkspaceRefPaneTab] = useState<
-    "summary" | "insights" | "annotations" | "document"
-  >("summary");
-  const [expandedRefAnnotations, setExpandedRefAnnotations] = useState<
-    Record<string, boolean>
-  >({});
-  const [detailRoomPresence, setDetailRoomPresence] = useState<any[]>([]);
-  const [detailLiveUpdate, setDetailLiveUpdate] = useState<any>(null);
+  const [workspaceRefPaneTab,    setWorkspaceRefPaneTab]    = useState<"summary" | "insights" | "annotations" | "document">("summary");
+  const [expandedRefAnnotations, setExpandedRefAnnotations] = useState<Record<string, boolean>>({});
+  const [detailRoomPresence,     setDetailRoomPresence]     = useState<any[]>([]);
+  const [detailLiveUpdate,       setDetailLiveUpdate]       = useState<any>(null);
 
+  // ── Load data ──────────────────────────────────────────────────────────────
   useEffect(() => {
     async function loadData() {
       try {
         const [vaultRes, srcRes, annRes] = await Promise.all([
-          apiFetch(`/api/vault/${vaultId}`),
-          apiFetch(`/api/vault/${vaultId}/source`),
-          apiFetch(`/api/vault/${vaultId}/source/${sourceId}/annotation`),
+          vaultService.getVault(vaultId),
+          sourceService.listSources(vaultId),
+          annotationService.listAnnotations(vaultId, sourceId),
         ]);
 
-        const vaultData = await vaultRes.json();
-        if (vaultData.success) {
-          setVault(vaultData.data);
-          setActiveVault(vaultData.data);
-        }
+        if (vaultRes.success) { setVault(vaultRes.data); setActiveVault(vaultRes.data); }
 
-        const srcData = await srcRes.json();
-        if (srcData.success) {
-          setSources(srcData.data.sources);
-          const found = srcData.data.sources.find((s: Source) => s.id === sourceId);
+        if (srcRes.success) {
+          setSources(srcRes.data.sources);
+          const found = srcRes.data.sources.find((s: Source) => s.id === sourceId);
           if (found) setSource(found);
         }
 
-        const annData = await annRes.json();
-        if (annData.success) {
-          setLocalAnnotations(annData.data);
-          setAnnotations(annData.data);
-          const found = annData.data.find((a: Annotation) => a.id === annotationId);
+        if (annRes.success) {
+          const list = annRes.data.annotations;
+          setLocalAnnotations(list);
+          setAnnotations(list);
+          const found = list.find((a) => a.id === annotationId);
           if (found) setAnnotation(found);
         }
       } catch (err) {
@@ -70,55 +66,70 @@ export default function AnnotationDetailRoute() {
     loadData();
   }, [vaultId, sourceId, annotationId]);
 
-  // Simulate live presence
+  // ── Real-time presence via Socket.IO ──────────────────────────────────────
   useEffect(() => {
-    if (!annotation) return;
-    const presence = [
-      {
-        id: "u-1",
-        name: currentUser ? `${currentUser.name} (You)` : "You",
-        avatar: "https://api.dicebear.com/7.x/pixel-art/svg?seed=SeerIjj",
-        status: "viewing",
-      },
-      {
-        id: "u-2",
-        name: "Prof. Adrian Carter",
-        avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Adrian",
-        status: "viewing",
-      },
-      {
-        id: "u-3",
-        name: "Elena Rostova",
-        avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Elena",
-        status: "viewing",
-      },
-    ];
-    setDetailRoomPresence(presence);
+    if (!currentUser || !vaultId || !annotationId) return;
 
-    const t1 = setTimeout(
-      () =>
-        setDetailRoomPresence((prev) =>
-          prev.map((p) => (p.id === "u-2" ? { ...p, status: "editing" } : p))
-        ),
-      4000
-    );
-    const t2 = setTimeout(() => {
+    const socket: Socket = io(`${WS_URL}${WS_NS}`, {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+    });
+
+    // Seed the presence list with ourselves as a viewer immediately
+    setDetailRoomPresence([{
+      id: currentUser.id,
+      userId: currentUser.id,
+      name: `${currentUser.name} (You)`,
+      avatar: currentUser.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(currentUser.name)}`,
+      status: "viewing" as const,
+    }]);
+
+    socket.on("connect", () => {
+      socket.emit("joinVault", { vaultId });
+      // Register as a viewer — does NOT affect the editor presence list
+      socket.emit("startViewing", { vaultId, annotationId });
+    });
+
+    // Unified presence: editors + viewers from the gateway
+    socket.on("annotation:editing", ({ annotationId: annId, presence }: {
+      annotationId: string;
+      presence?: Array<{ userId: string; name: string; status: string }>;
+      editors?: Array<{ userId: string; name: string }>;
+    }) => {
+      if (annId !== annotationId) return;
+
+      const list = presence ?? [];
+      setDetailRoomPresence(
+        list.map((p) => ({
+          id: p.userId,
+          userId: p.userId,
+          name: p.userId === currentUser.id ? `${p.name} (You)` : p.name,
+          avatar: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(p.name)}`,
+          status: p.status,
+        }))
+      );
+    });
+
+    // Live annotation update from the workspace editor
+    socket.on("annotation:updated", ({ sourceId: sid, annotation: updatedAnn }: any) => {
+      if (sid !== sourceId) return;
+      if (updatedAnn?.id !== annotationId) return;
       setDetailLiveUpdate({
         updated: true,
-        byUser: "Prof. Adrian Carter",
-        newVersion: annotation.version + 1,
+        byUser: updatedAnn.author?.name ?? "A collaborator",
+        newVersion: updatedAnn.version ?? ((annotation?.version ?? 1) + 1),
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        newContent: updatedAnn.contentMarkdown,
       });
-      setDetailRoomPresence((prev) =>
-        prev.map((p) => (p.id === "u-2" ? { ...p, status: "viewing" } : p))
-      );
-    }, 10000);
+    });
 
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
+      socket.emit("stopViewing", { vaultId, annotationId });
+      socket.emit("leaveVault", { vaultId });
+      socket.disconnect();
     };
-  }, [annotation?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vaultId, annotationId, currentUser?.id]);
 
   if (loading) {
     return (

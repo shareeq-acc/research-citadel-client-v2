@@ -3,8 +3,12 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
-import { apiFetch } from "@/lib/api";
+import { vaultService, sourceService, annotationService } from "@/services";
+import { io, Socket } from "socket.io-client";
 import { Source, Vault, Annotation } from "@/types";
+
+const WS_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:8000";
+const WS_NS  = "/collaboration";
 import { AnnotationWorkspacePage } from "@/components/source/AnnotationWorkspacePage";
 
 function AnnotationWorkspaceContent() {
@@ -50,29 +54,24 @@ function AnnotationWorkspaceContent() {
     async function loadData() {
       try {
         const [vaultRes, srcRes, annRes] = await Promise.all([
-          apiFetch(`/api/vault/${vaultId}`),
-          apiFetch(`/api/vault/${vaultId}/source`),
-          apiFetch(`/api/vault/${vaultId}/source/${sourceId}/annotation`),
+          vaultService.getVault(vaultId),
+          sourceService.listSources(vaultId),
+          annotationService.listAnnotations(vaultId, sourceId),
         ]);
 
-        const vaultData = await vaultRes.json();
-        if (vaultData.success) {
-          setVault(vaultData.data);
-          setActiveVault(vaultData.data);
-        }
+        if (vaultRes.success) { setVault(vaultRes.data); setActiveVault(vaultRes.data); }
 
-        const srcData = await srcRes.json();
-        if (srcData.success) {
-          setSources(srcData.data.sources);
-          const found = srcData.data.sources.find((s: Source) => s.id === sourceId);
+        if (srcRes.success) {
+          setSources(srcRes.data.sources);
+          const found = srcRes.data.sources.find((s: Source) => s.id === sourceId);
           if (found) setSource(found);
         }
 
-        const annData = await annRes.json();
-        if (annData.success) {
-          setAnnotations(annData.data);
+        if (annRes.success) {
+          const list = annRes.data.annotations;
+          setAnnotations(list);
           if (annotationId) {
-            const found = annData.data.find((a: Annotation) => a.id === annotationId);
+            const found = list.find((a) => a.id === annotationId);
             if (found) {
               setEditingAnnotation(found);
               setWorkspaceDraft(found.contentMarkdown);
@@ -90,31 +89,57 @@ function AnnotationWorkspaceContent() {
     loadData();
   }, [vaultId, sourceId, annotationId]);
 
-  // Presence polling
+  // ── Real-time presence via Socket.IO ─────────────────────────────────────
   useEffect(() => {
-    if (!source || !vault) return;
-    const syncPresence = async () => {
-      try {
-        const res = await apiFetch(
-          `/api/vault/${vault.id}/source/${source.id}/presence`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              status: editingAnnotation ? "editing" : "viewing",
-              editingAnnId: editingAnnotation?.id || null,
-              simulate: simulateCollaborators,
-            }),
-          }
-        );
-        const data = await res.json();
-        if (data.success && data.data) setWorkspacePresenceList(data.data);
-      } catch { /* ignore */ }
+    if (!source || !vault || !currentUser) return;
+
+    const socket: Socket = io(`${WS_URL}${WS_NS}`, {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+    });
+
+    socket.on("connect", () => {
+      // Join the vault room so we receive presence broadcasts
+      socket.emit("joinVault", { vaultId: vault.id });
+
+      // Tell others we are editing this annotation
+      if (editingAnnotation) {
+        socket.emit("startEditing", { vaultId: vault.id, annotationId: editingAnnotation.id });
+      }
+    });
+
+    // Server broadcasts unified presence (editors + viewers)
+    socket.on("annotation:editing", (payload: {
+      annotationId: string;
+      presence?: Array<{ userId: string; name: string; status: string }>;
+      editors?: Array<{ userId: string; name: string }>;
+    }) => {
+      if (payload.annotationId !== editingAnnotation?.id) return;
+
+      // Prefer the unified `presence` array; fall back to `editors` for older server versions
+      const list: Array<{ userId: string; name: string; status: string }> =
+        payload.presence ??
+        (payload.editors ?? []).map((e) => ({ ...e, status: 'editing' }));
+
+      setWorkspacePresenceList(
+        list.map((p) => ({
+          userId: p.userId,
+          name: p.userId === currentUser.id ? `${p.name} (You)` : p.name,
+          avatar: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(p.name)}`,
+          status: p.status,
+        }))
+      );
+    });
+
+    return () => {
+      if (editingAnnotation) {
+        socket.emit("stopEditing", { vaultId: vault.id, annotationId: editingAnnotation.id });
+      }
+      socket.emit("leaveVault", { vaultId: vault.id });
+      socket.disconnect();
     };
-    syncPresence();
-    const id = setInterval(syncPresence, 2500);
-    return () => clearInterval(id);
-  }, [source?.id, vault?.id, editingAnnotation?.id, simulateCollaborators]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source?.id, vault?.id, editingAnnotation?.id]);
 
   const handleSaveWorkspace = async () => {
     if (!vault || !source) return;
@@ -128,27 +153,21 @@ function AnnotationWorkspaceContent() {
       const payload = {
         contentMarkdown: workspaceDraft,
         contentHtml: workspaceDraft,
-        pageReference: workspacePageRef ? parseInt(workspacePageRef) : null,
-        sectionReference: workspaceSectionRef || null,
+        pageReference: workspacePageRef ? parseInt(workspacePageRef) : undefined,
+        sectionReference: workspaceSectionRef || undefined,
       };
-      const response = editingAnnotation
-        ? await apiFetch(
-            `/api/vault/${vault.id}/source/${source.id}/annotation/${editingAnnotation.id}`,
-            { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
-          )
-        : await apiFetch(
-            `/api/vault/${vault.id}/source/${source.id}/annotation`,
-            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
-          );
 
-      const res = await response.json();
+      const res = editingAnnotation
+        ? await annotationService.updateAnnotation(vault.id, source.id, editingAnnotation.id, payload)
+        : await annotationService.createAnnotation(vault.id, source.id, payload);
+
       if (res.success) {
         router.push(`/source/${vault.id}/${source.id}`);
       } else {
         setWorkspaceError(res.message || "Failed to save annotation.");
       }
-    } catch {
-      setWorkspaceError("Network error while saving annotation.");
+    } catch (err: any) {
+      setWorkspaceError(err?.message || "Failed to save annotation.");
     } finally {
       setWorkspaceSaving(false);
     }
@@ -159,16 +178,8 @@ function AnnotationWorkspaceContent() {
     setWorkspaceEnhancing(true);
     setWorkspacePreviousDraft(workspaceDraft);
     try {
-      const res = await apiFetch(
-        `/api/vault/${vault.id}/source/${source.id}/annotation/enhance`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ draft: workspaceDraft }),
-        }
-      );
-      const data = await res.json();
-      if (data.success) setWorkspaceDraft(data.data.enhanced);
+      const res = await annotationService.enhanceAnnotation(vault.id, source.id, workspaceDraft);
+      if (res.success) setWorkspaceDraft(res.data.enhancedMarkdown);
     } catch { /* ignore */ } finally {
       setWorkspaceEnhancing(false);
     }
@@ -180,28 +191,9 @@ function AnnotationWorkspaceContent() {
   };
 
   const handleSimulateCollaboratorConflict = async () => {
-    if (!vault || !source || !editingAnnotation) return;
-    setCollaboratorEditSimulating(true);
-    try {
-      const res = await apiFetch(
-        `/api/vault/${vault.id}/source/${source.id}/annotation/${editingAnnotation.id}/simulate-conflict`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ currentDraft: workspaceDraft }),
-        }
-      );
-      const data = await res.json();
-      if (data.success) {
-        setCollaboratorEditSimulatedMessage(
-          "⚡ Prof. Adrian Carter has saved an edit. Conflict detected between drafts."
-        );
-        setConflictResult(data.data);
-        if (data.data?.mergedContent) setWorkspaceDraft(data.data.mergedContent);
-      }
-    } catch { /* ignore */ } finally {
-      setCollaboratorEditSimulating(false);
-    }
+    // Simulation removed — real presence via Socket.IO is active
+    setCollaboratorEditSimulatedMessage("Real-time presence is active via WebSocket. Other editors appear automatically.");
+    setTimeout(() => setCollaboratorEditSimulatedMessage(""), 3000);
   };
 
   if (loading) {

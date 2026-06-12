@@ -62,7 +62,7 @@ export default function SourceDetailRoute() {
           }
         }
         const annRes = await annotationService.listAnnotations(vaultId, sourceId);
-        if (annRes.success) setAnnotations(annRes.data as Annotation[]);
+        if (annRes.success) setAnnotations(annRes.data.annotations as Annotation[]);
       } catch (err) {
         console.error(err);
       } finally {

@@ -19,6 +19,7 @@ interface AnnotationDetailPageProps {
     newVersion: number;
     byUser: string;
     time: string;
+    newContent?: string;
   } | null;
   setDetailLiveUpdate: (v: any) => void;
   setActiveAnnotation: React.Dispatch<React.SetStateAction<Annotation | null>>;
@@ -219,7 +220,8 @@ export const AnnotationDetailPage: React.FC<AnnotationDetailPageProps> = ({
                           return {
                             ...prev,
                             version: detailLiveUpdate.newVersion,
-                            contentMarkdown: prev.contentMarkdown + `\n\n*Amendment (v${detailLiveUpdate.newVersion} - ${detailLiveUpdate.byUser} at ${detailLiveUpdate.time}):* Concurrently synchronized revision history highlights critical alignment with Transformer dot-product scaling and cross-workspace consensus.`
+                            // Use real content from socket if available, otherwise keep existing
+                            contentMarkdown: detailLiveUpdate.newContent ?? prev.contentMarkdown,
                           };
                         });
                         setDetailLiveUpdate(null);

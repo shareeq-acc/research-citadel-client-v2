@@ -866,7 +866,7 @@ function AnnotationsTab({ vaultId, sources, onNavigateToSource, onNavigateToWork
     Promise.all(
       sources.map((src) =>
         annotationService.listAnnotations(vaultId, src.id)
-          .then((res) => ({ sourceId: src.id, data: res.success ? (res.data as Annotation[]) : [] }))
+          .then((res) => ({ sourceId: src.id, data: res.success ? res.data.annotations : [] }))
           .catch(() => ({ sourceId: src.id, data: [] }))
       )
     ).then((results) => {

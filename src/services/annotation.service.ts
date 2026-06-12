@@ -23,10 +23,17 @@ export interface UpdateAnnotationPayload {
 
 // ── Service ───────────────────────────────────────────────────────────────────
 
+export interface AnnotationsResult {
+  annotations: Annotation[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 const annotationService = {
   /** List all annotations for a source. */
   listAnnotations(vaultId: string, sourceId: string) {
-    return get<Annotation[]>(`/vault/${vaultId}/source/${sourceId}/annotation`);
+    return get<AnnotationsResult>(`/vault/${vaultId}/source/${sourceId}/annotation`);
   },
 
   /** Create an annotation. */
@@ -74,9 +81,9 @@ const annotationService = {
     sourceId: string,
     draft: string,
   ) {
-    return post<{ enhanced: string }>(
+    return post<{ enhancedMarkdown: string }>(
       `/vault/${vaultId}/source/${sourceId}/annotation/enhance`,
-      { draft },
+      { contentMarkdown: draft },  // server expects contentMarkdown
     );
   },
 } as const;
