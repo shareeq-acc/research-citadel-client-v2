@@ -1,12 +1,13 @@
 "use client";
 
-import { User, Vault } from "@/types";
+import { User, Vault, Notification } from "@/types";
 import { LogOut, Settings, User as UserIcon, ShieldAlert, CheckCircle, RefreshCw, Library, MessageSquare, Gauge, Bell } from "lucide-react";
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { io, Socket } from "socket.io-client";
-import { authService, userService, vaultService, chatService } from "@/services";
+import { authService, userService, vaultService, chatService, notificationService } from "@/services";
 import { NeobrutalistAvatar } from "@/components/NeobrutalistAvatar";
 import { getAiUsagePercents } from "@/lib/aiUsage";
+import { formatRelativeTime, notificationUiType, NotificationUiType } from "@/lib/notifications";
 
 const WS_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:8000";
 const WS_NS  = "/collaboration";
@@ -66,18 +67,79 @@ export default function NavLayout({
     return () => { document.removeEventListener("mousedown", handleClickOutside); };
   }, []);
 
-  const [notifications, setNotifications] = useState([
-    { id: "notif-1", title: "PDF Extraction Complete", description: "AI Grounding index generated successfully for 'Quantum Computing Foundations'.", time: "5m ago", read: false, type: "success" },
-    { id: "notif-2", title: "Paragraph Synced", description: "@Dr. Aris Thorne updated Abstract section in Artificial Intelligence Foundations.", time: "42m ago", read: false, type: "sync" },
-    { id: "notif-3", title: "Citadel Space Limit", description: "Your local laboratory sandbox is using 14.2 MB of 50 MB Free storage quota.", time: "2h ago", read: true, type: "info" },
-    { id: "notif-4", title: "Co-Author Invitation", description: "Researcher @Lukas invited you to collaborate on 'Neural Network Robustness'.", time: "1d ago", read: true, type: "info" },
-    { id: "notif-5", title: "Index Cache Refreshed", description: "Workspace semantic repository index synchronized with global scholar graph hashes.", time: "3d ago", read: true, type: "success" }
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [chats, setChats] = useState<any[]>([]);
   const [resending, setResending] = useState(false);
   const [bannerAlert, setBannerAlert] = useState<string | null>(null);
 
   const { dailyPercent: dailyPct, weeklyPercent: weeklyPct } = getAiUsagePercents(user.aiUsage);
+
+  const unreadNotificationCount = useMemo(
+    () => notifications.filter((n) => !n.read).length,
+    [notifications],
+  );
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await notificationService.list({ limit: 50 });
+      if (res.success && res.data) {
+        setNotifications(res.data);
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  const handleMarkNotificationRead = useCallback(async (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
+    );
+    try {
+      await notificationService.markRead(id);
+    } catch {
+      fetchNotifications();
+    }
+  }, [fetchNotifications]);
+
+  const handleMarkAllNotificationsRead = useCallback(async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    try {
+      await notificationService.markAllRead();
+    } catch {
+      fetchNotifications();
+    }
+  }, [fetchNotifications]);
+
+  const handleNotificationClick = useCallback(
+    (notification: Notification) => {
+      if (!notification.read) {
+        void handleMarkNotificationRead(notification.id);
+      }
+      const linkPath = notification.metadata?.linkPath;
+      if (typeof linkPath === "string" && linkPath) {
+        onNavigate(linkPath);
+        setNotificationsDropdownOpen(false);
+      }
+    },
+    [handleMarkNotificationRead, onNavigate],
+  );
+
+  const renderNotificationDot = (uiType: NotificationUiType) => {
+    if (uiType === "success") {
+      return <span className="w-2.5 h-2.5 bg-emerald-500 border-2 border-black inline-block rounded-none shrink-0" />;
+    }
+    if (uiType === "sync") {
+      return <span className="w-2.5 h-2.5 bg-[#ef4444] border-2 border-black inline-block rounded-none animate-pulse shrink-0" />;
+    }
+    return <span className="w-2.5 h-2.5 bg-amber-400 border-2 border-black inline-block rounded-none shrink-0" />;
+  };
 
   // ── Live chat updates via Socket.IO ────────────────────────────────────────
   const socketRef    = useRef<Socket | null>(null);
@@ -130,9 +192,16 @@ export default function NavLayout({
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      // Join every vault room so we receive chat:message events
+      socket.emit("joinUser");
       vaultIdsRef.current.forEach((vaultId) => {
         socket.emit("joinVault", { vaultId });
+      });
+    });
+
+    socket.on("notification:new", (notification: Notification) => {
+      setNotifications((prev) => {
+        if (prev.some((n) => n.id === notification.id)) return prev;
+        return [notification, ...prev];
       });
     });
 
@@ -330,9 +399,9 @@ export default function NavLayout({
                 title="Laboratory Notifications"
               >
                 <Bell className="w-5.5 h-5.5 text-black stroke-[3]" />
-                {notifications.filter(n => !n.read).length > 0 && (
+                {unreadNotificationCount > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 bg-yellow-300 text-black border-2 border-black font-black font-mono text-[8.5px] w-5 h-5 rounded-none flex items-center justify-center shadow-[1px_1px_0px_#000]">
-                    {notifications.filter(n => !n.read).length}
+                    {unreadNotificationCount}
                   </span>
                 )}
               </button>
@@ -341,29 +410,40 @@ export default function NavLayout({
                 <div className="fixed sm:absolute inset-x-2 sm:inset-x-auto sm:right-0 top-[72px] sm:top-auto sm:mt-3 sm:w-80 bg-white border-4 border-black p-2 rounded-none shadow-[6px_6px_0px_#000] space-y-1 text-xs select-none z-50">
                   <div className="p-2 border-b-2 border-black bg-stone-50 mb-1 rounded-none flex justify-between items-center">
                     <span className="font-mono font-black text-xs uppercase text-neo-dark">Notifications</span>
-                    {notifications.filter(n => !n.read).length > 0 && (
-                      <button onClick={() => setNotifications(notifications.map(n => ({ ...n, read: true })))} className="text-[9px] font-mono font-black bg-yellow-300 border border-black hover:bg-yellow-400 px-1.5 py-0.5 rounded-none cursor-pointer uppercase transition-colors">
+                    {unreadNotificationCount > 0 && (
+                      <button onClick={() => void handleMarkAllNotificationsRead()} className="text-[9px] font-mono font-black bg-yellow-300 border border-black hover:bg-yellow-400 px-1.5 py-0.5 rounded-none cursor-pointer uppercase transition-colors">
                         Read All
                       </button>
                     )}
                   </div>
                   <div className="max-h-[230px] overflow-y-auto divide-y divide-stone-200 custom-scrollbar">
-                    {notifications.map((n) => (
-                      <div key={n.id} onClick={() => setNotifications(notifications.map(notif => notif.id === n.id ? { ...notif, read: true } : notif))} className={`p-2.5 transition-colors cursor-pointer rounded-none text-left flex gap-2.5 ${n.read ? "bg-white hover:bg-stone-50" : "bg-amber-50/50 hover:bg-amber-100/40"}`}>
-                        <div className="mt-0.5 shrink-0">
-                          {n.type === "success" ? <span className="w-2.5 h-2.5 bg-emerald-500 border-2 border-black inline-block rounded-none shrink-0" /> :
-                           n.type === "sync" ? <span className="w-2.5 h-2.5 bg-[#ef4444] border-2 border-black inline-block rounded-none animate-pulse shrink-0" /> :
-                           <span className="w-2.5 h-2.5 bg-amber-400 border-2 border-black inline-block rounded-none shrink-0" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start gap-1">
-                            <h4 className={`font-mono text-[10.5px] text-black ${!n.read ? "font-black" : "font-semibold"}`}>{n.title}</h4>
-                            <span className="text-[8px] text-stone-400 font-mono shrink-0 whitespace-nowrap">{n.time}</span>
+                    {notificationsLoading ? (
+                      <div className="p-4 text-center text-[10px] font-mono text-stone-500 uppercase">Loading…</div>
+                    ) : notifications.length === 0 ? (
+                      <div className="p-4 text-center text-[10px] font-mono text-stone-500 uppercase">No notifications yet</div>
+                    ) : (
+                      notifications.map((n) => {
+                        const uiType = notificationUiType(n.type);
+                        return (
+                          <div
+                            key={n.id}
+                            onClick={() => handleNotificationClick(n)}
+                            className={`p-2.5 transition-colors cursor-pointer rounded-none text-left flex gap-2.5 ${n.read ? "bg-white hover:bg-stone-50" : "bg-amber-50/50 hover:bg-amber-100/40"}`}
+                          >
+                            <div className="mt-0.5 shrink-0">
+                              {renderNotificationDot(uiType)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-start gap-1">
+                                <h4 className={`font-mono text-[10.5px] text-black ${!n.read ? "font-black" : "font-semibold"}`}>{n.title}</h4>
+                                <span className="text-[8px] text-stone-400 font-mono shrink-0 whitespace-nowrap">{formatRelativeTime(n.createdAt)}</span>
+                              </div>
+                              <p className="text-[10px] font-mono text-stone-600 mt-1 leading-normal">{n.description}</p>
+                            </div>
                           </div>
-                          <p className="text-[10px] font-mono text-stone-600 mt-1 leading-normal">{n.description}</p>
-                        </div>
-                      </div>
-                    ))}
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               )}

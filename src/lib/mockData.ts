@@ -1,4 +1,4 @@
-import { User, Vault, Source, Annotation, AuditLog, VaultMember } from "@/types";
+import { User, Vault, Source, Annotation, AuditLog, VaultMember, Notification } from "@/types";
 
 export const MOCK_USER: User = {
   id: "mock-user-001",
@@ -18,6 +18,39 @@ export const MOCK_USER: User = {
     weeklyLimit: 30,
   },
 };
+
+export const MOCK_NOTIFICATIONS: Notification[] = [
+  {
+    id: "notif-1",
+    userId: MOCK_USER.id,
+    type: "AI_COMPLETE",
+    title: "PDF Extraction Complete",
+    description: "AI grounding index generated for 'Quantum Computing Foundations'.",
+    read: false,
+    metadata: { vaultId: "vault-001", linkPath: "/source/vault-001/src-001" },
+    createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "notif-2",
+    userId: MOCK_USER.id,
+    type: "VAULT_ACTIVITY",
+    title: "Paragraph Synced",
+    description: "@Dr. Aris Thorne updated Abstract section in Artificial Intelligence Foundations.",
+    read: false,
+    metadata: { vaultId: "vault-001" },
+    createdAt: new Date(Date.now() - 42 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "notif-3",
+    userId: MOCK_USER.id,
+    type: "INVITATION",
+    title: "Co-Author Invitation",
+    description: "Researcher @Lukas invited you to collaborate on 'Neural Network Robustness'.",
+    read: true,
+    metadata: { linkPath: "/invitations" },
+    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
 
 export const MOCK_MEMBERS: VaultMember[] = [
   {

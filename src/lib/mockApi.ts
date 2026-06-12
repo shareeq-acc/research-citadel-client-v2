@@ -9,6 +9,7 @@ import {
   MOCK_SOURCES,
   MOCK_ANNOTATIONS,
   MOCK_AUDIT_LOGS,
+  MOCK_NOTIFICATIONS,
   generateMockHeatmapData,
   generateMockUserStats,
 } from "./mockData";
@@ -26,6 +27,8 @@ let mockVaults = [...MOCK_VAULTS];
 let mockSources: Record<string, any[]> = { ...MOCK_SOURCES };
 let mockAnnotations: Record<string, any[]> = { ...MOCK_ANNOTATIONS };
 let mockUser = { ...MOCK_USER };
+
+let mockNotifications = [...MOCK_NOTIFICATIONS];
 
 export function handleMockRequest(url: string, init?: RequestInit): any {
   const method = (init?.method || "GET").toUpperCase();
@@ -86,6 +89,29 @@ export function handleMockRequest(url: string, init?: RequestInit): any {
 
   if (url === "/api/auth/verify-email" && method === "PUT") {
     return ok({ message: "Verification email resent" });
+  }
+
+  // ── NOTIFICATIONS ─────────────────────────────────────────────────────
+  if (url.startsWith("/api/notifications") && method === "GET") {
+    if (url.includes("unread-count")) {
+      return ok({ count: mockNotifications.filter((n) => !n.read).length });
+    }
+    return ok(mockNotifications);
+  }
+
+  if (url.match(/^\/api\/notifications\/[^/]+\/read$/) && method === "PATCH") {
+    const id = url.split("/")[3];
+    mockNotifications = mockNotifications.map((n) =>
+      n.id === id ? { ...n, read: true } : n,
+    );
+    const updated = mockNotifications.find((n) => n.id === id);
+    return updated ? ok(updated) : fail("Notification not found");
+  }
+
+  if (url === "/api/notifications/read-all" && method === "PATCH") {
+    const unread = mockNotifications.filter((n) => !n.read).length;
+    mockNotifications = mockNotifications.map((n) => ({ ...n, read: true }));
+    return ok({ updated: unread });
   }
 
   // ── VAULTS ────────────────────────────────────────────────────────────

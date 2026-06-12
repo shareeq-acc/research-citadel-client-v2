@@ -15,6 +15,25 @@ export interface User {
     weeklyUsed: number;
     weeklyLimit: number;
   };
+  hasNotifications?: boolean;
+}
+
+export type NotificationType =
+  | 'INVITATION'
+  | 'VAULT_ACTIVITY'
+  | 'AI_COMPLETE'
+  | 'SYSTEM'
+  | 'SECURITY';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  description: string;
+  read: boolean;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
 }
 
 export interface Vault {
