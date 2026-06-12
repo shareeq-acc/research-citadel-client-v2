@@ -172,8 +172,7 @@ export default function NavLayout({
     try {
       const res = await authService.requestEmailVerification();
       if (res.success) {
-        setBannerAlert("🟢 Verification email sent. Check your inbox for the OTP.");
-        setTimeout(() => { onNavigate("/auth?screen=verify-otp"); }, 1200);
+        setBannerAlert("🟢 Verification link sent. Check your inbox and click the link to verify.");
       } else {
         setBannerAlert(`⚠️ ${res.message || "Failed to resend."}`);
       }
@@ -193,7 +192,7 @@ export default function NavLayout({
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-5 h-5 text-black stroke-[2.5]" />
             <span>
-              <strong>Verification Required:</strong> Confirm your email code to activate collaborative editing. Unverified: <code className="bg-black text-white px-1.5 py-0.5 rounded-none text-[10px] font-mono">{user.email}</code>.
+              <strong>Verification Required:</strong> Click the verification link in your email to activate collaborative editing. Unverified: <code className="bg-black text-white px-1.5 py-0.5 rounded-none text-[10px] font-mono">{user.email}</code>.
             </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -208,7 +207,7 @@ export default function NavLayout({
               className="bg-yellow-300 text-black hover:bg-yellow-400 border-2 border-black px-3.5 py-1.5 font-mono font-black text-[10px] uppercase shadow-[2.5px_2.5px_0px_#000] hover:shadow-[3.5px_3.5px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 transition-all flex items-center gap-1 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${resending ? "animate-spin" : ""}`} />
-              Verify Pin
+              Resend Link
             </button>
           </div>
         </div>

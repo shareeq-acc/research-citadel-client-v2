@@ -66,10 +66,14 @@ export function handleMockRequest(url: string, init?: RequestInit): any {
 
   if (url === "/api/auth/verify-otp" && method === "POST") {
     if (body.otp === "123456") {
-      mockUser = { ...mockUser, isEmailVerified: true };
-      return ok({ verified: true });
+      return ok({ token: "mock-reset-token" });
     }
     return fail("Invalid OTP. Use 123456 in test mode.");
+  }
+
+  if (url === "/api/auth/confirm-email" && method === "POST") {
+    mockUser = { ...mockUser, isEmailVerified: true };
+    return ok({ user: mockUser });
   }
 
   if (url === "/api/auth/logout" && method === "POST") {

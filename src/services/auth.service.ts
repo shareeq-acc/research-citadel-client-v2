@@ -66,6 +66,10 @@ export interface OtpResult {
   token?: string; // present only for PASSWORD_RESET
 }
 
+export interface ConfirmEmailResult {
+  user: AuthUser;
+}
+
 // ── Service methods ───────────────────────────────────────────────────────────
 
 const authService = {
@@ -115,11 +119,18 @@ const authService = {
   },
 
   /**
-   * Trigger an email-verification OTP for the currently logged-in user.
+   * Send an email-verification link for the currently logged-in user.
    * Requires a valid session cookie.
    */
   requestEmailVerification() {
     return put<void>("/auth/verify-email");
+  },
+
+  /**
+   * Confirm email verification using the token from the verification link.
+   */
+  confirmEmailVerification(token: string) {
+    return post<ConfirmEmailResult>("/auth/confirm-email", { token });
   },
 
   /**

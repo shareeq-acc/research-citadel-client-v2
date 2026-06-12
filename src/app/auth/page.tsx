@@ -24,7 +24,7 @@ function AuthContent() {
   const { currentUser, setCurrentUser } = useApp();
 
   const [screen, setScreen] = useState<
-    "login" | "register" | "verify-otp" | "forgot-password" | "reset-password"
+    "login" | "register" | "check-email" | "verify-otp" | "forgot-password" | "reset-password"
   >((searchParams.get("screen") as any) ?? "login");
 
   // Login
@@ -43,10 +43,11 @@ function AuthContent() {
   // Login show/hide password
   const [showLoginPass, setShowLoginPass] = useState(false);
 
-  // OTP – we keep track of the email that triggered the OTP so we can pass it
-  // back to the verify-otp endpoint.
+  // Password-reset OTP flow
   const [otpEmail, setOtpEmail] = useState("");
   const [otpInput, setOtpInput] = useState("");
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [resendingLink, setResendingLink] = useState(false);
 
   // Forgot / Reset password
   const [forgotEmail, setForgotEmail] = useState("");
@@ -57,10 +58,10 @@ function AuthContent() {
   const [okMessage, setOkMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (except when waiting for email verification)
   useEffect(() => {
-    if (currentUser) router.replace("/dashboard");
-  }, [currentUser, router]);
+    if (currentUser && screen !== "check-email") router.replace("/dashboard");
+  }, [currentUser, router, screen]);
 
   function clearMessages() {
     setErrMessage("");
@@ -117,11 +118,11 @@ function AuthContent() {
         password: regPass,
       });
       if (res.success) {
+        setPendingEmail(regEmail);
+        setScreen("check-email");
         setCurrentUser(res.data.user);
-        setOtpEmail(regEmail);
         await authService.requestEmailVerification();
-        setScreen("verify-otp");
-        setOkMessage("Account created! A 6-digit code has been sent to your email.");
+        setOkMessage("Account created! A verification link has been sent to your email.");
       } else {
         setErrMessage(res.message ?? "Registration failed.");
       }
@@ -132,7 +133,26 @@ function AuthContent() {
     }
   };
 
-  // ── Verify OTP ─────────────────────────────────────────────────────────────
+  // ── Resend verification link ───────────────────────────────────────────────
+
+  const handleResendVerificationLink = async () => {
+    clearMessages();
+    setResendingLink(true);
+    try {
+      const res = await authService.requestEmailVerification();
+      if (res.success) {
+        setOkMessage("Verification link resent. Check your inbox.");
+      } else {
+        setErrMessage(res.message ?? "Failed to resend verification email.");
+      }
+    } catch (err) {
+      setErrMessage(extractMessage(err, "Failed to resend verification email."));
+    } finally {
+      setResendingLink(false);
+    }
+  };
+
+  // ── Verify OTP (password reset only) ───────────────────────────────────────
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,12 +163,13 @@ function AuthContent() {
       const res = await authService.verifyOtp({
         email: otpEmail,
         otp: otpInput,
-        type: "EMAIL_VERIFICATION",
+        type: "PASSWORD_RESET",
         otpChannel: "EMAIL",
       });
       if (res.success) {
-        setOkMessage("Email verified! Redirecting…");
-        setTimeout(() => router.push("/dashboard"), 1000);
+        setResetToken(res.data?.token ?? "");
+        setOkMessage("Code verified! Choose a new password.");
+        setScreen("reset-password");
       } else {
         setErrMessage(res.message ?? "Invalid OTP.");
       }
@@ -452,11 +473,44 @@ function AuthContent() {
           </form>
         )}
 
-        {/* ── VERIFY OTP ── */}
+        {/* ── CHECK EMAIL (verification link sent) ── */}
+        {screen === "check-email" && (
+          <div className="space-y-5">
+            <div className="text-center space-y-3">
+              <div className="w-16 h-16 mx-auto bg-neo-yellow border-4 border-neo-dark flex items-center justify-center shadow-[4px_4px_0px_#0A0A0A]">
+                <Mail className="w-8 h-8 text-neo-dark stroke-[2.5]" />
+              </div>
+              <p className="text-xs text-stone-600 leading-relaxed">
+                We sent a verification link to{" "}
+                <span className="font-bold font-mono text-neo-dark">{pendingEmail}</span>.
+                Click the link in your email to activate your account.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleResendVerificationLink}
+              disabled={resendingLink}
+              className="w-full neo-btn py-3 text-xs disabled:opacity-60"
+            >
+              {resendingLink ? "Sending…" : "Resend Verification Link"}
+            </button>
+            <div className="text-center text-[10px] text-stone-500 font-mono pt-1">
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard")}
+                className="hover:underline"
+              >
+                Continue to dashboard — verify later
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── VERIFY OTP (password reset) ── */}
         {screen === "verify-otp" && (
           <div className="space-y-4">
             <p className="text-xs text-stone-600 text-center leading-relaxed">
-              Enter the 6-digit code sent to{" "}
+              Enter the 6-digit reset code sent to{" "}
               <span className="font-bold font-mono">{otpEmail}</span>.
             </p>
             <form onSubmit={handleVerifyOtp} className="space-y-4">
@@ -476,15 +530,15 @@ function AuthContent() {
                 disabled={loading}
                 className="w-full neo-btn py-3 text-xs disabled:opacity-60"
               >
-                {loading ? "Verifying…" : "Authorize Secure Clearance"}
+                {loading ? "Verifying…" : "Verify Reset Code"}
               </button>
               <div className="text-center text-[10px] text-stone-500 font-mono pt-1">
                 <button
                   type="button"
-                  onClick={() => router.push("/dashboard")}
+                  onClick={() => { clearMessages(); setScreen("login"); }}
                   className="hover:underline"
                 >
-                  Postpone verification
+                  Return to login
                 </button>
               </div>
             </form>
