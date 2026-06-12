@@ -45,6 +45,7 @@ interface AppContextValue {
   // Auth
   currentUser: User | null;
   setCurrentUser: (u: User | null) => void;
+  refreshCurrentUser: () => Promise<void>;
   checkingAuth: boolean;
   handleLogout: () => Promise<void>;
 
@@ -256,7 +257,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Auth actions ───────────────────────────────────────────────────────────
+  const refreshCurrentUser = async () => {
+    try {
+      const res = await userService.getMe();
+      if (res.success && res.data) {
+        setCurrentUser(res.data);
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -372,6 +382,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentUser,
         setCurrentUser,
+        refreshCurrentUser,
         checkingAuth,
         handleLogout,
 

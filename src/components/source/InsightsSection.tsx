@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Source } from "@/types";
 import { Sparkles, Target, FlaskConical, Lightbulb, Star, AlertTriangle, Rocket, Database, ChevronDown, ChevronUp, Loader } from "lucide-react";
 import { sourceService } from "@/services";
+import { useApp } from "@/context/AppContext";
 
 interface InsightsSectionProps {
   vaultId: string;
@@ -13,6 +14,7 @@ interface InsightsSectionProps {
 }
 
 export default function InsightsSection({ vaultId, source, myRole, onSourceUpdated }: InsightsSectionProps) {
+  const { refreshCurrentUser } = useApp();
   // Collapsible toggle states
   const [collapsedSummary, setCollapsedSummary] = useState(false);
   const [openBlocks, setOpenBlocks] = useState<Record<string, boolean>>({
@@ -41,8 +43,10 @@ export default function InsightsSection({ vaultId, source, myRole, onSourceUpdat
     setError("");
     try {
       const res = await sourceService.summarize(vaultId, source.id, { length: summaryLength });
-      if (res.success) onSourceUpdated(res.data);
-      else setError(res.message || "Failed to generate AI summary.");
+      if (res.success) {
+        onSourceUpdated(res.data);
+        await refreshCurrentUser();
+      } else setError(res.message || "Failed to generate AI summary.");
     } catch (err: any) {
       setError(err?.message || "AI generation network error.");
     } finally {
@@ -57,6 +61,7 @@ export default function InsightsSection({ vaultId, source, myRole, onSourceUpdat
       const res = await sourceService.extractInsights(vaultId, source.id);
       if (res.success) {
         onSourceUpdated(res.data);
+        await refreshCurrentUser();
         setOpenBlocks({ problem: true, methodology: true, findings: true, contributions: true, limitations: true, future: true, datasets: true });
       } else {
         setError(res.message || "Failed to query specialized AI insights.");

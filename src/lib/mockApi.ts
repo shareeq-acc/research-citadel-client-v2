@@ -450,7 +450,20 @@ export function handleMockRequest(url: string, init?: RequestInit): any {
 
   // User plan upgrade
   if (url === "/api/user/upgrade" && method === "POST") {
-    mockUser = { ...mockUser, plan: body.plan || "FREE" };
+    const plan = body.plan || "FREE";
+    const limits =
+      plan === "PRO"
+        ? { dailyLimit: 500, weeklyLimit: 3000 }
+        : { dailyLimit: 10, weeklyLimit: 30 };
+    mockUser = {
+      ...mockUser,
+      plan,
+      aiUsage: {
+        dailyUsed: mockUser.aiUsage?.dailyUsed ?? 0,
+        weeklyUsed: mockUser.aiUsage?.weeklyUsed ?? 0,
+        ...limits,
+      },
+    };
     return ok(mockUser);
   }
 

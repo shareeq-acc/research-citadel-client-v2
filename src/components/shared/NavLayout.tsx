@@ -6,6 +6,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { authService, userService, vaultService, chatService } from "@/services";
 import { NeobrutalistAvatar } from "@/components/NeobrutalistAvatar";
+import { getAiUsagePercents } from "@/lib/aiUsage";
 
 const WS_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ?? "http://localhost:8000";
 const WS_NS  = "/collaboration";
@@ -75,6 +76,8 @@ export default function NavLayout({
   const [chats, setChats] = useState<any[]>([]);
   const [resending, setResending] = useState(false);
   const [bannerAlert, setBannerAlert] = useState<string | null>(null);
+
+  const { dailyPercent: dailyPct, weeklyPercent: weeklyPct } = getAiUsagePercents(user.aiUsage);
 
   // ── Live chat updates via Socket.IO ────────────────────────────────────────
   const socketRef    = useRef<Socket | null>(null);
@@ -430,19 +433,19 @@ export default function NavLayout({
                       <div>
                         <div className="flex justify-between text-[8px] font-mono leading-none">
                           <span>Daily AI Rate:</span>
-                          <span className="font-bold">{Math.round(((user.aiUsage?.dailyUsed || 0) / (user.aiUsage?.dailyLimit || 5)) * 100)}% Used</span>
+                          <span className="font-bold">{dailyPct}% Used</span>
                         </div>
                         <div className="w-full bg-stone-200 h-1.5 border border-neo-dark rounded-full overflow-hidden mt-0.5">
-                          <div className={`${(() => { const pct = Math.round(((user.aiUsage?.dailyUsed || 0) / (user.aiUsage?.dailyLimit || 5)) * 100); if (pct < 30) return "bg-blue-500"; if (pct <= 60) return "bg-yellow-400"; if (pct <= 85) return "bg-purple-500"; return "bg-red-500"; })()} h-full transition-all duration-300`} style={{ width: `${Math.min(100, (((user.aiUsage?.dailyUsed || 0) / (user.aiUsage?.dailyLimit || 5)) * 100))}%` }} />
+                          <div className={`${dailyPct < 30 ? "bg-blue-500" : dailyPct <= 60 ? "bg-yellow-400" : dailyPct <= 85 ? "bg-purple-500" : "bg-red-500"} h-full transition-all duration-300`} style={{ width: `${dailyPct}%` }} />
                         </div>
                       </div>
                       <div>
                         <div className="flex justify-between text-[8px] font-mono leading-none">
                           <span>Weekly AI Rate:</span>
-                          <span className="font-bold">{Math.round(((user.aiUsage?.weeklyUsed || 0) / (user.aiUsage?.weeklyLimit || 15)) * 100)}% Used</span>
+                          <span className="font-bold">{weeklyPct}% Used</span>
                         </div>
                         <div className="w-full bg-stone-200 h-1.5 border border-neo-dark rounded-full overflow-hidden mt-0.5">
-                          <div className={`${(() => { const pct = Math.round(((user.aiUsage?.weeklyUsed || 0) / (user.aiUsage?.weeklyLimit || 15)) * 100); if (pct < 30) return "bg-blue-500"; if (pct <= 60) return "bg-yellow-400"; if (pct <= 85) return "bg-purple-500"; return "bg-red-500"; })()} h-full transition-all duration-300`} style={{ width: `${Math.min(100, (((user.aiUsage?.weeklyUsed || 0) / (user.aiUsage?.weeklyLimit || 15)) * 100))}%` }} />
+                          <div className={`${weeklyPct < 30 ? "bg-blue-500" : weeklyPct <= 60 ? "bg-yellow-400" : weeklyPct <= 85 ? "bg-purple-500" : "bg-red-500"} h-full transition-all duration-300`} style={{ width: `${weeklyPct}%` }} />
                         </div>
                       </div>
                     </div>

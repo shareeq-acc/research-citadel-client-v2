@@ -13,9 +13,9 @@ export const MOCK_USER: User = {
   plan: "FREE",
   aiUsage: {
     dailyUsed: 3,
-    dailyLimit: 5,
+    dailyLimit: 10,
     weeklyUsed: 9,
-    weeklyLimit: 15,
+    weeklyLimit: 30,
   },
 };
 

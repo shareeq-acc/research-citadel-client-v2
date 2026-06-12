@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { User } from "@/types";
+import { userService } from "@/services";
+import { getAiUsagePercents } from "@/lib/aiUsage";
 import { 
   Zap, 
   Check, 
@@ -29,34 +31,22 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const dailyUsed = user.aiUsage?.dailyUsed || 0;
-  const dailyLimit = user.aiUsage?.dailyLimit || 5;
-  const weeklyUsed = user.aiUsage?.weeklyUsed || 0;
-  const weeklyLimit = user.aiUsage?.weeklyLimit || 15;
-
-  const dailyPct = Math.min(100, (dailyUsed / dailyLimit) * 100);
-  const weeklyPct = Math.min(100, (weeklyUsed / weeklyLimit) * 100);
+  const { dailyUsed, dailyLimit, weeklyUsed, weeklyLimit, dailyPercent: dailyPct, weeklyPercent: weeklyPct } =
+    getAiUsagePercents(user.aiUsage);
 
   const handlePlanChange = async (targetPlan: "FREE" | "PRO") => {
     setLoading(true);
     setSuccessMsg(null);
     setErrorMsg(null);
     try {
-      const resp = await fetch("/api/user/upgrade", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ plan: targetPlan })
-      });
-      const data = await resp.json();
-      if (data.success) {
+      const res = await userService.upgradePlan(targetPlan);
+      if (res.success) {
         setSuccessMsg(`Account tier updated to ${targetPlan} successfully!`);
-        if (data.data) {
-          onUpdateUser(data.data);
+        if (res.data) {
+          onUpdateUser(res.data);
         }
       } else {
-        setErrorMsg(data.message || "Could not change subscription tier.");
+        setErrorMsg(res.message || "Could not change subscription tier.");
       }
     } catch (err: any) {
       setErrorMsg("Failed to communicate with the Scholar Authority server.");

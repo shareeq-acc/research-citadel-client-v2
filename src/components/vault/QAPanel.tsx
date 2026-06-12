@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Source } from "@/types";
 import { vaultService, sourceService } from "@/services";
+import { useApp } from "@/context/AppContext";
 import MarkdownRenderer from "@/components/shared/MarkdownRenderer";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ const SUGGESTION_CHIPS = [
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function QAPanel({ vaultId, sources: initialSources }: QAPanelProps) {
+  const { refreshCurrentUser } = useApp();
   // ── Source state (fetched live) ──────────────────────────────────────────
   const [sources, setSources] = useState<Source[]>(initialSources);
   const [loadingSources, setLoadingSources] = useState(false);
@@ -178,6 +180,7 @@ export default function QAPanel({ vaultId, sources: initialSources }: QAPanelPro
           };
 
       setMessages((prev) => [...prev, aiMsg]);
+      if (res.success) await refreshCurrentUser();
     } catch (err: any) {
       setMessages((prev) => [
         ...prev,

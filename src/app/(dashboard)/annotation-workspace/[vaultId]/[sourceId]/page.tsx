@@ -15,7 +15,7 @@ function AnnotationWorkspaceContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { currentUser, setActiveVault, setSources, setAnnotations, annotations } = useApp();
+  const { currentUser, setActiveVault, setSources, setAnnotations, annotations, refreshCurrentUser } = useApp();
 
   const vaultId = params.vaultId as string;
   const sourceId = params.sourceId as string;
@@ -179,7 +179,10 @@ function AnnotationWorkspaceContent() {
     setWorkspacePreviousDraft(workspaceDraft);
     try {
       const res = await annotationService.enhanceAnnotation(vault.id, source.id, workspaceDraft);
-      if (res.success) setWorkspaceDraft(res.data.enhancedMarkdown);
+      if (res.success) {
+        setWorkspaceDraft(res.data.enhancedMarkdown);
+        await refreshCurrentUser();
+      }
     } catch { /* ignore */ } finally {
       setWorkspaceEnhancing(false);
     }

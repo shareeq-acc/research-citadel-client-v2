@@ -9,6 +9,7 @@ import {
   Trash2, Check, Crown, Edit3, Menu, Settings,
   UserPlus, Send, Loader2, X
 } from "lucide-react";
+import { getAiUsagePercents } from "@/lib/aiUsage";
 import { useApp } from "@/context/AppContext";
 import { vaultService, userService, annotationService, invitationService } from "@/services";
 import { Source, Annotation, Vault } from "@/types";
@@ -197,8 +198,13 @@ export default function DashboardClient() {
     v.name.toLowerCase().includes(vaultSearchQuery.toLowerCase())
   );
 
-  const dailyComputePercent = 85;
-  const weeklyComputePercent = 53;
+  const { dailyPercent: dailyComputePercent, weeklyPercent: weeklyComputePercent, dailyLimit, weeklyLimit, currentPlan } = (() => {
+    const p = getAiUsagePercents(currentUser?.aiUsage);
+    return {
+      ...p,
+      currentPlan: currentUser?.plan ?? "FREE",
+    };
+  })();
 
   const getProgressColor = (percent: number) => {
     if (percent >= 80) return "bg-rose-500 animate-pulse";
@@ -261,8 +267,8 @@ export default function DashboardClient() {
           <div>
             <span className="text-[9px] font-mono font-bold text-stone-500 uppercase tracking-widest block">CURRENT TIER CAPACITY</span>
             <div className="flex items-center gap-1.5 mt-1.5">
-              <span className="font-display font-black text-sm text-neo-dark tracking-tight leading-none">FREE</span>
-              <span className="text-[8px] font-mono font-bold border border-neo-dark bg-neo-yellow px-1.5 py-0.5 rounded-[6px] uppercase tracking-wide leading-none">LIMITED</span>
+              <span className="font-display font-black text-sm text-neo-dark tracking-tight leading-none">{currentPlan}</span>
+              <span className={`text-[8px] font-mono font-bold border border-neo-dark px-1.5 py-0.5 rounded-[6px] uppercase tracking-wide leading-none ${currentPlan === "PRO" ? "bg-neo-yellow" : "bg-neo-yellow"}`}>{currentPlan === "PRO" ? "UNLIMITED" : "LIMITED"}</span>
             </div>
           </div>
           <button onClick={() => router.push("/subscription")} className="w-full py-1 text-[9px] font-mono font-semibold uppercase text-neo-dark bg-white border-2 border-neo-dark rounded-[4px] shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-stone-50 hover:-translate-y-0.5 active:translate-y-0 active:shadow-[1px_1px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-1 cursor-pointer">
