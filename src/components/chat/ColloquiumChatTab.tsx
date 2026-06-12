@@ -9,7 +9,7 @@ import { Source, User as AppUser } from "@/types";
 import {
   Send, Terminal, HelpCircle, Reply, CheckCheck, Users, Bot,
   X, Crown, Settings, Search, Radio, Trash2, UserPlus,
-  Loader2, AlertCircle,
+  Loader2, AlertCircle, CheckCircle2, Clock, ShieldCheck, BookOpen,
 } from "lucide-react";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -28,6 +28,113 @@ interface Props {
   vaultOwnerId: string;
   vaultMembers: any[];   // from parent (vault detail members)
   sources: Source[];
+}
+
+// ── TerminalContent — renders bot output with proper light-on-dark styling ──────
+
+function TerminalContent({ content }: { content: string }) {
+  const lines = content.split("\n");
+
+  return (
+    <>
+      {lines.map((line, i) => {
+        if (!line.trim()) return <div key={i} className="h-1" />;
+
+        // Header line: **TEXT**
+        const headerMatch = line.match(/^\*\*(.+)\*\*$/);
+        if (headerMatch) {
+          return (
+            <div key={i} className="flex items-center gap-2 mb-2 pb-1.5 border-b border-stone-700">
+              <Terminal className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="text-amber-300 font-black text-[12px] uppercase tracking-wider">
+                {headerMatch[1]}
+              </span>
+            </div>
+          );
+        }
+
+        // Numbered source line: N. **Title** | `TYPE` | [INDEXED] / [PENDING]
+        const sourceMatch = line.match(/^(\d+)\.\s\*\*(.+)\*\*\s\|\s`([^`]+)`\s\|\s(\[.+\])$/);
+        if (sourceMatch) {
+          const [, num, title, type, status] = sourceMatch;
+          const isIndexed = status === "[INDEXED]";
+          return (
+            <div key={i} className="flex items-center gap-2 py-1 border-b border-stone-800">
+              <span className="text-stone-500 font-mono text-[10px] w-4 shrink-0">{num}.</span>
+              <BookOpen className="w-3 h-3 text-sky-400 shrink-0" />
+              <span className="text-stone-100 font-medium flex-1 truncate text-[11px]">{title}</span>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 bg-stone-700 text-stone-300 rounded">{type}</span>
+              {isIndexed
+                ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                : <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              }
+            </div>
+          );
+        }
+
+        // Member line: - **Name** [OWNER] / [YOU]
+        const memberMatch = line.match(/^-\s\*\*(.+?)\*\*(.*)$/);
+        if (memberMatch) {
+          const [, name, tag] = memberMatch;
+          const isOwnerTag = tag.includes("[OWNER]");
+          const isYouTag   = tag.includes("[YOU]");
+          return (
+            <div key={i} className="flex items-center gap-2 py-1 border-b border-stone-800">
+              <Users className="w-3 h-3 text-sky-400 shrink-0" />
+              <span className="text-stone-100 font-medium text-[11px] flex-1">{name}</span>
+              {isOwnerTag && (
+                <span className="flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 bg-amber-400/20 text-amber-300 border border-amber-600 rounded">
+                  <Crown className="w-2.5 h-2.5" /> Owner
+                </span>
+              )}
+              {isYouTag && (
+                <span className="text-[9px] font-mono px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-700 rounded">
+                  You
+                </span>
+              )}
+            </div>
+          );
+        }
+
+        // Access level line: **Access Level: `ROLE`**
+        const accessMatch = line.match(/^\*\*Access Level:\s`([^`]+)`\*\*$/);
+        if (accessMatch) {
+          const role = accessMatch[1];
+          return (
+            <div key={i} className="flex items-center gap-2 mb-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="text-stone-200 font-medium text-[11px]">Access Level:</span>
+              <span className="text-[10px] font-mono font-black px-2 py-0.5 bg-neo-yellow text-neo-dark rounded border border-amber-400">
+                {role}
+              </span>
+            </div>
+          );
+        }
+
+        // Inline code: `text`
+        const hasInlineCode = line.includes("`");
+        if (hasInlineCode) {
+          const parts = line.split(/(`[^`]+`)/g);
+          return (
+            <p key={i} className="text-stone-300 text-[11px] leading-relaxed">
+              {parts.map((part, pi) =>
+                part.startsWith("`") && part.endsWith("`")
+                  ? <code key={pi} className="px-1.5 py-0.5 bg-stone-700 text-amber-300 rounded text-[10px] font-mono mx-0.5">{part.slice(1, -1)}</code>
+                  : part.replace(/\*\*/g, "")
+              )}
+            </p>
+          );
+        }
+
+        // Default: plain text (strip any remaining ** markers)
+        return (
+          <p key={i} className="text-stone-300 text-[11px] leading-relaxed">
+            {line.replace(/\*\*/g, "")}
+          </p>
+        );
+      })}
+    </>
+  );
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -161,6 +268,37 @@ export const ColloquiumChatTab: React.FC<Props> = ({
     const text = inputText.trim();
     if (!text || sending) return;
 
+    // ── Intercept terminal directives ────────────────────────────────────
+    if (text.startsWith("/")) {
+      setInputText("");
+      if (typingTimer.current) clearTimeout(typingTimer.current);
+      emitTyping(false);
+      const response = executeCommand(text);
+      if (response !== null) {
+        // Inject a local bot-style message — never sent to the server
+        const botMsg: ChatMessage = {
+          id: `bot-${Date.now()}`,
+          vaultId,
+          senderId: "system",
+          content: response,
+          replyToId: null,
+          replyToText: null,
+          replyToUser: null,
+          readBy: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          sender: {
+            id: "system",
+            name: "System",
+            email: "",
+            avatar: null,
+          },
+        };
+        setMessages((prev) => [...prev, botMsg]);
+      }
+      return;
+    }
+
     setSending(true);
     setError("");
     if (typingTimer.current) clearTimeout(typingTimer.current);
@@ -238,8 +376,80 @@ export const ColloquiumChatTab: React.FC<Props> = ({
   };
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-  const applyCommand = (cmd: string) => { setInputText(cmd); setShowHelp(false); };
+  const applyCommand = (cmd: string) => {
+    setShowHelp(false);
+    setInputText(cmd);
+    // Execute immediately
+    const response = executeCommand(cmd);
+    if (response !== null) {
+      const botMsg: ChatMessage = {
+        id: `bot-${Date.now()}`,
+        vaultId,
+        senderId: "system",
+        content: response,
+        replyToId: null,
+        replyToText: null,
+        replyToUser: null,
+        readBy: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        sender: { id: "system", name: "System", email: "", avatar: null },
+      };
+      setMessages((prev) => [...prev, botMsg]);
+    }
+    setInputText("");
+  };
   const isMine = (msg: ChatMessage) => msg.senderId === currentUser.id;
+
+  // ── Terminal directive handler ────────────────────────────────────────────
+  const executeCommand = (cmd: string): string | null => {
+    const normalized = cmd.trim().toLowerCase();
+
+    if (normalized === "/help") {
+      return [
+        "**COLLOQUIUM DIRECTIVES**",
+        "",
+        "`/help` — Show this help panel",
+        "`/sources` — List all sources indexed in this vault",
+        "`/members` — List active chat members",
+        "`/admin` — Display your access level in this channel",
+        "`/clear` — Clear all messages from your view (local only)",
+      ].join("\n");
+    }
+
+    if (normalized === "/sources") {
+      if (sources.length === 0) return "**No sources found** in this vault. Add sources from the Sources tab.";
+      const lines = sources.map((s, i) => {
+        const status = s.chunksProcessed ? "[INDEXED]" : "[PENDING]";
+        return `${i + 1}. **${s.title}** | \`${s.sourceType}\` | ${status}`;
+      });
+      return `**Sources in this vault (${sources.length})**\n\n${lines.join("\n")}`;
+    }
+
+    if (normalized === "/members") {
+      if (chatMembers.length === 0) return "**No chat members** found. The owner is always present.";
+      const lines = chatMembers.map((m) => {
+        const tag = m.user.id === vaultOwnerId ? " [OWNER]" : m.user.id === currentUser.id ? " [YOU]" : "";
+        return `- **${m.user.name}**${tag}`;
+      });
+      return `**Chat Members (${chatMembers.length})**\n\n${lines.join("\n")}`;
+    }
+
+    if (normalized === "/admin") {
+      const role = isOwner ? "OWNER" : "MEMBER";
+      const perms = isOwner
+        ? "Full administrative access — manage members, delete any message, configure the channel."
+        : "Standard member access — send messages, reply, and view the channel.";
+      return `**Access Level: \`${role}\`**\n\n${perms}`;
+    }
+
+    if (normalized === "/clear") {
+      setMessages([]);
+      return null;
+    }
+
+    return `**Unknown directive:** \`${cmd}\`\n\nType \`/help\` to see available commands.`;
+  };
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -394,13 +604,15 @@ export const ColloquiumChatTab: React.FC<Props> = ({
               <div className="grid grid-cols-1 gap-1.5">
                 {[
                   ["/help",    "Show this help panel"],
-                  ["/sources", "List sources in this vault"],
-                  ["/admin",   "Show your admin status"],
+                  ["/sources", "List all sources in this vault"],
+                  ["/members", "List active chat members"],
+                  ["/admin",   "Display your access level"],
+                  ["/clear",   "Clear messages from your view (local only)"],
                 ].map(([cmd, desc]) => (
                   <button key={cmd} onClick={() => applyCommand(cmd)}
                     className="text-left py-1 px-1.5 bg-stone-800 hover:bg-stone-700 rounded text-[9px] flex justify-between items-center group cursor-pointer">
                     <span><code>{cmd}</code> — {desc}</span>
-                    <span className="text-stone-500 group-hover:text-amber-400 font-bold">&gt;&gt; Use</span>
+                    <span className="text-stone-500 group-hover:text-amber-400 font-bold">&gt;&gt; Run</span>
                   </button>
                 ))}
               </div>
@@ -423,8 +635,38 @@ export const ColloquiumChatTab: React.FC<Props> = ({
             ) : (
               messages.map((msg) => {
                 const mine = isMine(msg);
-                const canDelete = mine || isOwner;
+                const isBot = msg.senderId === "system";
+                const canDelete = (mine || isOwner) && !isBot;
                 const readers = msg.readBy.filter((id) => id !== msg.senderId);
+
+                // ── Bot / system message ──────────────────────────────────
+                if (isBot) {
+                  return (
+                    <div key={msg.id} className="flex items-start gap-2">
+                      <div className="w-7 h-7 bg-stone-800 border-2 border-neo-dark rounded-sm flex items-center justify-center shrink-0 shadow-[1px_1px_0px_#000]">
+                        <Terminal className="w-3.5 h-3.5 text-amber-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[9px] text-stone-400 font-mono mb-1 block">
+                          System · {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        <div className="bg-stone-900 border-2 border-stone-700 rounded-sm shadow-[2px_2px_0px_#000] overflow-hidden">
+                          {/* Terminal title bar */}
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-800 border-b border-stone-700">
+                            <div className="w-2 h-2 rounded-full bg-rose-500" />
+                            <div className="w-2 h-2 rounded-full bg-amber-400" />
+                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <span className="ml-1 text-[9px] font-mono text-stone-400 uppercase tracking-widest">citadel terminal</span>
+                          </div>
+                          {/* Content */}
+                          <div className="p-3 font-mono text-[11px] leading-relaxed space-y-1">
+                            <TerminalContent content={msg.content} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
                   <div key={msg.id} className={`flex items-start gap-2.5 group ${mine ? "flex-row-reverse" : "flex-row"}`}>
@@ -523,7 +765,7 @@ export const ColloquiumChatTab: React.FC<Props> = ({
                 type="text"
                 value={inputText}
                 onChange={handleInputChange}
-                placeholder={replyTo ? "Write your reply…" : "Message the channel…"}
+                placeholder={replyTo ? "Write your reply…" : "Message the channel or type / for commands…"}
                 className="flex-1 px-3 py-2 text-xs border-2 border-neo-dark rounded-sm focus:outline-none bg-stone-50 font-sans"
               />
               <button
