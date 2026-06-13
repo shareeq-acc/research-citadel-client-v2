@@ -1,0 +1,3610 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Research Citadel — Collaborative Research Platform</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --yellow: #FFD000;
+            --black: #0A0A0A;
+            --white: #F5F2EB;
+            --green: #00C48C;
+            --red: #FF3B3B;
+            --teal: #00B8D9;
+            --border: 2.5px solid #0A0A0A;
+            --shadow: 4px 4px 0 #0A0A0A;
+            --shadow-lg: 6px 6px 0 #0A0A0A;
+            --shadow-xl: 8px 8px 0 #0A0A0A;
+            --font-display: 'Syne', sans-serif;
+            --font-mono: 'Space Mono', monospace;
+            --font-body: 'DM Sans', sans-serif;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        html {
+            scroll-behavior: smooth
+        }
+
+        body {
+            background: var(--white);
+            color: var(--black);
+            font-family: var(--font-body);
+            overflow-x: hidden
+        }
+
+        /* icons */
+        .icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0
+        }
+
+        .icon svg {
+            display: block
+        }
+
+        /* ── ANIMATIONS ── */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(22px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        @keyframes fadeLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-24px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0)
+            }
+        }
+
+        @keyframes fadeRight {
+            from {
+                opacity: 0;
+                transform: translateX(24px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0)
+            }
+        }
+
+        @keyframes floatIn {
+            from {
+                opacity: 0;
+                transform: translateY(14px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        @keyframes ticker {
+            from {
+                transform: translateX(0)
+            }
+
+            to {
+                transform: translateX(-50%)
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1)
+            }
+
+            50% {
+                opacity: .35;
+                transform: scale(.75)
+            }
+        }
+
+        @keyframes dot-bounce {
+
+            0%,
+            80%,
+            100% {
+                transform: translateY(0)
+            }
+
+            40% {
+                transform: translateY(-5px)
+            }
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0
+            }
+        }
+
+        .reveal {
+            animation: fadeUp .6s ease both
+        }
+
+        .reveal-left {
+            animation: fadeLeft .6s ease both
+        }
+
+        .reveal-right {
+            animation: fadeRight .6s ease both
+        }
+
+        .s1 {
+            animation-delay: .06s
+        }
+
+        .s2 {
+            animation-delay: .13s
+        }
+
+        .s3 {
+            animation-delay: .20s
+        }
+
+        .s4 {
+            animation-delay: .27s
+        }
+
+        .s5 {
+            animation-delay: .34s
+        }
+
+        .s6 {
+            animation-delay: .41s
+        }
+
+        /* ── NAV ── */
+        nav {
+            background: var(--black);
+            border-bottom: var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 48px;
+            height: 62px;
+            position: sticky;
+            top: 0;
+            z-index: 200
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none
+        }
+
+        .nav-logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--yellow);
+            border: 2px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0
+        }
+
+        .nav-logo-text {
+            color: #fff;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: .05em;
+            line-height: 1.2
+        }
+
+        .nav-logo-text span {
+            display: block;
+            font-size: 10px;
+            font-weight: 400;
+            color: var(--yellow);
+            letter-spacing: .1em
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            list-style: none
+        }
+
+        .nav-links a {
+            color: #999;
+            text-decoration: none;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            letter-spacing: .04em;
+            transition: color .15s
+        }
+
+        .nav-links a:hover {
+            color: var(--yellow)
+        }
+
+        .nav-cta {
+            background: var(--yellow) !important;
+            color: var(--black) !important;
+            border: 2px solid #fff !important;
+            padding: 7px 16px !important;
+            font-weight: 700 !important;
+            transition: transform .1s, box-shadow .1s !important
+        }
+
+        .nav-cta:hover {
+            transform: translate(-2px, -2px) !important;
+            box-shadow: 3px 3px 0 #fff !important
+        }
+
+        /* hamburger */
+        .nav-hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+            padding: 4px;
+            background: none;
+            border: none
+        }
+
+        .nav-hamburger span {
+            display: block;
+            width: 22px;
+            height: 2.5px;
+            background: #fff;
+            transition: transform .2s, opacity .2s
+        }
+
+        .nav-mobile {
+            display: none;
+            position: absolute;
+            top: 62px;
+            left: 0;
+            right: 0;
+            background: var(--black);
+            border-bottom: var(--border);
+            flex-direction: column;
+            padding: 16px 24px;
+            gap: 0;
+            z-index: 199
+        }
+
+        .nav-mobile.open {
+            display: flex
+        }
+
+        .nav-mobile a {
+            color: #aaa;
+            text-decoration: none;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            padding: 12px 0;
+            border-bottom: 1px solid #1a1a1a;
+            letter-spacing: .04em;
+            transition: color .15s
+        }
+
+        .nav-mobile a:last-child {
+            border-bottom: none;
+            color: var(--yellow);
+            font-weight: 700;
+            padding-top: 14px
+        }
+
+        .nav-mobile a:hover {
+            color: var(--yellow)
+        }
+
+        /* ── TICKER ── */
+        .ticker-wrap {
+            background: var(--yellow);
+            border-bottom: var(--border);
+            overflow: hidden;
+            height: 38px;
+            display: flex;
+            align-items: center
+        }
+
+        .ticker-track {
+            display: flex;
+            animation: ticker 30s linear infinite;
+            white-space: nowrap
+        }
+
+        .ticker-item {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            padding: 0 28px;
+            border-right: var(--border);
+            height: 38px;
+            display: flex;
+            align-items: center;
+            gap: 9px
+        }
+
+        /* ── HERO ── */
+        .hero {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: calc(100vh - 100px);
+            border-bottom: var(--border)
+        }
+
+        .hero-left {
+            border-right: var(--border);
+            padding: 72px 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden
+        }
+
+        .hero-left::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(10, 10, 10, .05) 39px, rgba(10, 10, 10, .05) 40px), repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(10, 10, 10, .05) 39px, rgba(10, 10, 10, .05) 40px);
+            pointer-events: none
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--black);
+            color: var(--yellow);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .1em;
+            padding: 6px 14px;
+            border: var(--border);
+            border-color: var(--black);
+            width: fit-content;
+            margin-bottom: 28px;
+            position: relative;
+            z-index: 1
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--green);
+            border-radius: 50%;
+            flex-shrink: 0;
+            animation: pulse 1.6s ease-in-out infinite
+        }
+
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: clamp(44px, 6vw, 84px);
+            font-weight: 800;
+            line-height: .95;
+            letter-spacing: -.025em;
+            color: var(--black);
+            position: relative;
+            z-index: 1
+        }
+
+        .hero-title .hl {
+            display: inline-block;
+            background: var(--yellow);
+            padding: 2px 10px;
+            border: var(--border);
+            transform: rotate(-1.2deg);
+            box-shadow: var(--shadow)
+        }
+
+        .hero-subtitle {
+            margin-top: 24px;
+            font-size: 16px;
+            line-height: 1.7;
+            color: #444;
+            max-width: 430px;
+            position: relative;
+            z-index: 1
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 14px;
+            margin-top: 38px;
+            z-index: 1;
+            position: relative;
+            flex-wrap: wrap
+        }
+
+        .btn-primary {
+            background: var(--yellow);
+            color: var(--black);
+            border: var(--border);
+            padding: 13px 26px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: var(--shadow);
+            transition: transform .12s, box-shadow .12s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .btn-primary:hover {
+            transform: translate(-3px, -3px);
+            box-shadow: var(--shadow-lg)
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: var(--black);
+            border: var(--border);
+            padding: 13px 26px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: var(--shadow);
+            transition: transform .12s, box-shadow .12s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .btn-secondary:hover {
+            transform: translate(-3px, -3px);
+            box-shadow: var(--shadow-lg)
+        }
+
+        .hero-stats {
+            display: flex;
+            margin-top: 48px;
+            border: var(--border);
+            width: fit-content;
+            z-index: 1;
+            position: relative
+        }
+
+        .hero-stat {
+            padding: 13px 20px;
+            border-right: var(--border)
+        }
+
+        .hero-stat:last-child {
+            border-right: none
+        }
+
+        .hero-stat-number {
+            font-family: var(--font-mono);
+            font-size: 21px;
+            font-weight: 700;
+            line-height: 1
+        }
+
+        .hero-stat-label {
+            font-size: 10px;
+            color: #777;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            margin-top: 4px;
+            font-family: var(--font-mono)
+        }
+
+        /* hero right */
+        .hero-right {
+            background: var(--black);
+            padding: 44px 36px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 13px;
+            position: relative;
+            overflow: hidden
+        }
+
+        .hero-right::after {
+            content: 'CITADEL';
+            position: absolute;
+            bottom: 10px;
+            right: -10px;
+            font-family: var(--font-display);
+            font-size: 96px;
+            font-weight: 800;
+            color: rgba(255, 255, 255, .03);
+            pointer-events: none;
+            white-space: nowrap
+        }
+
+        .vault-card {
+            background: var(--white);
+            border: 2.5px solid #fff;
+            padding: 15px 18px;
+            box-shadow: var(--shadow);
+            animation: floatIn .55s ease both
+        }
+
+        .vault-card:nth-child(1) {
+            animation-delay: .1s
+        }
+
+        .vault-card:nth-child(2) {
+            animation-delay: .25s
+        }
+
+        .ai-card {
+            background: #1a1a1a;
+            border: 2px solid #333;
+            padding: 15px 18px;
+            box-shadow: 4px 4px 0 var(--yellow);
+            animation: floatIn .55s ease .4s both
+        }
+
+        .vc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 6px
+        }
+
+        .tag {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .06em;
+            padding: 3px 8px;
+            border: 1.5px solid var(--black)
+        }
+
+        .tag-private {
+            background: #FFE5E5;
+            color: #c0392b;
+            border-color: #c0392b
+        }
+
+        .tag-public {
+            background: #E5FFF5;
+            color: #00a36c;
+            border-color: #00a36c
+        }
+
+        .tag-yellow {
+            background: var(--yellow);
+            color: var(--black)
+        }
+
+        .tag-teal {
+            background: var(--teal);
+            color: var(--black)
+        }
+
+        .tag-white {
+            background: #fff;
+            color: var(--black)
+        }
+
+        .vc-tags {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap
+        }
+
+        .vc-role {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            background: var(--yellow);
+            border: 1.5px solid var(--black);
+            padding: 3px 8px
+        }
+
+        .vc-title {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .02em
+        }
+
+        .vc-desc {
+            font-size: 12px;
+            color: #555;
+            line-height: 1.5;
+            margin-top: 3px
+        }
+
+        .vc-footer {
+            margin-top: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .vc-sources {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #444;
+            border: 1.5px solid #888;
+            padding: 3px 9px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            gap: 5px
+        }
+
+        .vc-action {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #c0392b;
+            font-weight: 700;
+            text-decoration: none
+        }
+
+        .ai-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px
+        }
+
+        .ai-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--yellow);
+            letter-spacing: .1em
+        }
+
+        .ai-msg {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #ddd;
+            line-height: 1.65;
+            border-left: 3px solid var(--yellow);
+            padding-left: 11px
+        }
+
+        .typing-dots span {
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            background: var(--green);
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: dot-bounce .8s ease-in-out infinite
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: .15s
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: .3s
+        }
+
+        /* ── SECTION BASE ── */
+        .section-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .12em;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .section-label::before {
+            content: '';
+            width: 22px;
+            height: 2px;
+            background: var(--black);
+            display: inline-block;
+            flex-shrink: 0
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: clamp(30px, 4vw, 56px);
+            font-weight: 800;
+            line-height: 1.0;
+            letter-spacing: -.025em;
+            color: var(--black)
+        }
+
+        /* ── PROCESS ── */
+        .process {
+            padding: 96px 48px;
+            border-bottom: var(--border);
+            background: var(--white);
+            position: relative;
+            overflow: hidden
+        }
+
+        .process::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 80% 10%, rgba(255, 208, 0, .1) 0%, transparent 55%);
+            pointer-events: none
+        }
+
+        .process-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: end;
+            margin-bottom: 64px
+        }
+
+        .process-header p {
+            font-size: 15px;
+            color: #555;
+            line-height: 1.7;
+            padding-top: 8px
+        }
+
+        .process-step {
+            display: grid;
+            grid-template-columns: 72px 1fr;
+            border: var(--border);
+            border-bottom: none;
+            background: #fff;
+            transition: background .2s;
+            position: relative;
+            overflow: hidden
+        }
+
+        .process-step:last-child {
+            border-bottom: var(--border)
+        }
+
+        .process-step::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: transparent;
+            transition: background .2s
+        }
+
+        .process-step:hover::after {
+            background: var(--yellow)
+        }
+
+        .process-step:hover {
+            background: #FFFCE8
+        }
+
+        .collab-step:hover::after {
+            background: var(--teal) !important
+        }
+
+        .collab-step:hover {
+            background: #E8FCFC !important
+        }
+
+        .ps-num {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: var(--border);
+            font-family: var(--font-mono);
+            font-size: 24px;
+            font-weight: 700;
+            color: #e0e0e0;
+            background: #fafafa;
+            transition: color .2s, background .2s;
+            padding: 24px 0
+        }
+
+        .process-step:hover .ps-num {
+            color: var(--black);
+            background: #fff
+        }
+
+        .ps-body {
+            padding: 24px 28px;
+            display: flex;
+            align-items: flex-start;
+            gap: 18px
+        }
+
+        .ps-icon {
+            width: 46px;
+            height: 46px;
+            background: var(--black);
+            border: var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: var(--shadow);
+            transition: transform .2s, box-shadow .2s
+        }
+
+        .collab-step .ps-icon {
+            background: var(--teal)
+        }
+
+        .process-step:hover .ps-icon {
+            transform: translate(-2px, -2px);
+            box-shadow: var(--shadow-lg)
+        }
+
+        .ps-content {
+            flex: 1;
+            min-width: 0
+        }
+
+        .ps-tag {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: .1em;
+            padding: 2px 8px;
+            border: 1.5px solid var(--black);
+            display: inline-block;
+            margin-bottom: 7px
+        }
+
+        .collab-step .ps-tag {
+            background: var(--teal);
+            border-color: var(--teal)
+        }
+
+        .ps-title {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+            margin-bottom: 5px
+        }
+
+        .ps-desc {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.65
+        }
+
+        .ps-chips {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 10px
+        }
+
+        .chip {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 9px;
+            border: 1.5px solid #ccc;
+            background: var(--white);
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 5px
+        }
+
+        .connector {
+            width: 2px;
+            height: 20px;
+            background: #ddd;
+            margin-left: 36px;
+            position: relative;
+            overflow: hidden
+        }
+
+        .connector::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--yellow);
+            transform: scaleY(0);
+            transform-origin: top;
+            transition: transform .3s ease
+        }
+
+        .process-step:hover+.connector::after {
+            transform: scaleY(1)
+        }
+
+        /* ── COLLAB ── */
+        .collab-section {
+            background: var(--black);
+            color: #fff;
+            padding: 96px 48px;
+            border-top: var(--border);
+            border-bottom: var(--border)
+        }
+
+        .collab-section .section-label {
+            color: #444
+        }
+
+        .collab-section .section-label::before {
+            background: #fff
+        }
+
+        .collab-section .section-title {
+            color: #fff
+        }
+
+        .collab-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            margin-top: 60px;
+            border: 2px solid #1e1e1e
+        }
+
+        .collab-item {
+            padding: 40px 36px;
+            border-right: 2px solid #1e1e1e;
+            border-bottom: 2px solid #1e1e1e;
+            transition: background .2s
+        }
+
+        .collab-item:nth-child(2n) {
+            border-right: none
+        }
+
+        .collab-item:nth-last-child(-n+2) {
+            border-bottom: none
+        }
+
+        .collab-item:hover {
+            background: rgba(255, 208, 0, .03)
+        }
+
+        .ci-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px
+        }
+
+        .ci-icon {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #2a2a2a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color .2s, background .2s
+        }
+
+        .collab-item:hover .ci-icon {
+            border-color: var(--yellow);
+            background: rgba(255, 208, 0, .07)
+        }
+
+        .ci-badge {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            padding: 4px 10px;
+            border: 1.5px solid #2a2a2a;
+            color: #555;
+            transition: border-color .2s, color .2s
+        }
+
+        .collab-item:hover .ci-badge {
+            border-color: var(--yellow);
+            color: var(--yellow)
+        }
+
+        .ci-title {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+            color: #fff;
+            margin-bottom: 9px
+        }
+
+        .ci-desc {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.7
+        }
+
+        .ci-preview {
+            margin-top: 18px;
+            background: #111;
+            border: 1.5px solid #1e1e1e;
+            padding: 13px
+        }
+
+        .presence-strip {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 11px
+        }
+
+        .presence-dot {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            color: #555;
+            letter-spacing: .04em;
+            font-family: var(--font-mono)
+        }
+
+        .presence-dot::before {
+            content: '';
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #2a2a2a;
+            flex-shrink: 0
+        }
+
+        .presence-dot.editing::before {
+            background: var(--yellow);
+            animation: pulse 1.6s ease-in-out infinite
+        }
+
+        .presence-dot.viewing::before {
+            background: var(--teal)
+        }
+
+        .chat-bubble {
+            padding: 8px 11px;
+            border: 1.5px solid #222;
+            color: #888;
+            line-height: 1.5;
+            font-size: 11px;
+            margin-bottom: 8px;
+            font-family: var(--font-mono)
+        }
+
+        .chat-bubble.me {
+            background: #1e1e00;
+            border-color: #333300;
+            color: var(--yellow);
+            margin-left: 12px
+        }
+
+        .chat-bubble .sender {
+            font-size: 9px;
+            color: #444;
+            margin-bottom: 3px;
+            letter-spacing: .05em
+        }
+
+        .chat-bubble.me .sender {
+            color: #888
+        }
+
+        .version-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1.5px solid #1e1e1e;
+            padding: 6px 10px;
+            margin-bottom: 5px
+        }
+
+        .version-row:last-child {
+            margin-bottom: 0
+        }
+
+        .ver-label {
+            font-size: 10px;
+            color: #555;
+            font-family: var(--font-mono)
+        }
+
+        .ver-tag {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            padding: 2px 7px;
+            background: #1a1a1a;
+            color: #666;
+            border: 1px solid #2a2a2a
+        }
+
+        .ver-tag.latest {
+            background: #1e1e00;
+            color: var(--yellow);
+            border-color: #333300
+        }
+
+        /* ── FEATURES ── */
+        .features {
+            padding: 96px 48px;
+            border-bottom: var(--border)
+        }
+
+        .features-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            margin-bottom: 60px;
+            align-items: end
+        }
+
+        .features-header p {
+            font-size: 15px;
+            color: #555;
+            line-height: 1.7;
+            padding-top: 8px
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            border: var(--border)
+        }
+
+        .feat {
+            padding: 34px 30px;
+            border-right: var(--border);
+            border-bottom: var(--border);
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+            transition: background .15s, transform .15s, box-shadow .15s
+        }
+
+        .feat:hover {
+            background: var(--yellow);
+            transform: translate(-3px, -3px);
+            box-shadow: var(--shadow-lg);
+            z-index: 1
+        }
+
+        .feat:nth-child(3),
+        .feat:nth-child(6) {
+            border-right: none
+        }
+
+        .feat:nth-child(4),
+        .feat:nth-child(5),
+        .feat:nth-child(6) {
+            border-bottom: none
+        }
+
+        .feat-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--black);
+            border: var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+            box-shadow: var(--shadow)
+        }
+
+        .feat-title {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            margin-bottom: 9px
+        }
+
+        .feat-desc {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.65
+        }
+
+        .feat:hover .feat-desc {
+            color: #333
+        }
+
+        /* ── ROLES ── */
+        .roles {
+            background: var(--yellow);
+            border-top: var(--border);
+            border-bottom: var(--border);
+            padding: 84px 48px
+        }
+
+        .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+            margin-top: 48px
+        }
+
+        .role-card {
+            background: #fff;
+            border: var(--border);
+            box-shadow: var(--shadow-xl);
+            overflow: hidden;
+            transition: transform .12s, box-shadow .12s
+        }
+
+        .role-card:hover {
+            transform: translate(-4px, -4px);
+            box-shadow: 10px 10px 0 var(--black)
+        }
+
+        .role-header {
+            padding: 18px 22px;
+            border-bottom: var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .role-name {
+            font-family: var(--font-mono);
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: .04em
+        }
+
+        .role-badge {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .07em;
+            padding: 4px 10px;
+            border: var(--border)
+        }
+
+        .role-badge.owner {
+            background: var(--black);
+            color: var(--yellow)
+        }
+
+        .role-badge.contributor {
+            background: var(--teal);
+            color: var(--black)
+        }
+
+        .role-badge.viewer {
+            background: #eee;
+            color: var(--black)
+        }
+
+        .role-perms {
+            padding: 18px 22px;
+            list-style: none
+        }
+
+        .role-perms li {
+            font-size: 12px;
+            color: #444;
+            padding: 7px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-family: var(--font-mono)
+        }
+
+        .role-perms li:last-child {
+            border-bottom: none
+        }
+
+        .perm-ok {
+            color: var(--green);
+            flex-shrink: 0
+        }
+
+        .perm-no {
+            color: #ccc;
+            flex-shrink: 0
+        }
+
+        /* ── PREVIEW ── */
+        .preview {
+            padding: 96px 48px;
+            border-bottom: var(--border)
+        }
+
+        .preview-tabs {
+            display: flex;
+            gap: 0;
+            margin-top: 44px;
+            border: var(--border);
+            width: fit-content;
+            flex-wrap: wrap
+        }
+
+        .ptab {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .05em;
+            padding: 10px 20px;
+            border-right: var(--border);
+            cursor: pointer;
+            background: #fff;
+            transition: background .1s;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            user-select: none
+        }
+
+        .ptab:last-child {
+            border-right: none
+        }
+
+        .ptab.active {
+            background: var(--yellow)
+        }
+
+        .ptab:hover:not(.active) {
+            background: #f0ede6
+        }
+
+        .preview-frame {
+            border: var(--border);
+            border-top: none;
+            overflow: hidden;
+            background: #e8e5de
+        }
+
+        .preview-bar {
+            background: var(--black);
+            height: 36px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 7px;
+            border-bottom: var(--border)
+        }
+
+        .win-dot {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(255, 255, 255, .15)
+        }
+
+        .win-dot.r {
+            background: #FF5F57
+        }
+
+        .win-dot.y {
+            background: #FEBC2E
+        }
+
+        .win-dot.g {
+            background: #28C840
+        }
+
+        .preview-url {
+            background: #1a1a1a;
+            border: 1.5px solid #2a2a2a;
+            height: 22px;
+            flex: 1;
+            max-width: 440px;
+            margin-left: 14px;
+            display: flex;
+            align-items: center;
+            padding: 0 9px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: #555
+        }
+
+        .preview-body {
+            padding: 32px;
+            min-height: 380px
+        }
+
+        .panel {
+            display: none
+        }
+
+        .panel.active {
+            display: block
+        }
+
+        .mock-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 16px;
+            max-width: 840px;
+            margin: 0 auto
+        }
+
+        .mock-side {
+            background: #fff;
+            border: var(--border);
+            box-shadow: var(--shadow);
+            padding: 13px;
+            display: flex;
+            flex-direction: column;
+            gap: 9px
+        }
+
+        .mock-side-title {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .1em;
+            padding-bottom: 9px;
+            border-bottom: var(--border);
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .auth-badge {
+            background: var(--teal);
+            font-size: 9px;
+            padding: 2px 6px;
+            border: 1.5px solid var(--black);
+            font-family: var(--font-mono);
+            font-weight: 700
+        }
+
+        .mock-vc {
+            border: var(--border);
+            padding: 11px;
+            background: #fff;
+            box-shadow: 3px 3px 0 var(--black)
+        }
+
+        .mock-vc.active-vc {
+            background: #FFFBE6;
+            border-color: var(--yellow);
+            box-shadow: 3px 3px 0 var(--yellow)
+        }
+
+        .mvc-tags {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 5px;
+            flex-wrap: wrap
+        }
+
+        .mvc-title {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase
+        }
+
+        .mvc-desc {
+            font-size: 10px;
+            color: #666;
+            line-height: 1.4;
+            margin-top: 3px
+        }
+
+        .mvc-src {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            border: 1.5px solid #ccc;
+            padding: 2px 7px;
+            margin-top: 7px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #fff
+        }
+
+        .mock-main {
+            background: #fff;
+            border: var(--border);
+            box-shadow: var(--shadow);
+            padding: 18px
+        }
+
+        .mock-main-hdr {
+            margin-bottom: 13px;
+            padding-bottom: 11px;
+            border-bottom: var(--border)
+        }
+
+        .mock-tabs {
+            display: flex;
+            border: var(--border);
+            width: fit-content;
+            margin-bottom: 14px;
+            flex-wrap: wrap
+        }
+
+        .mtab {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-right: var(--border);
+            cursor: pointer
+        }
+
+        .mtab:last-child {
+            border-right: none
+        }
+
+        .mtab.a {
+            background: var(--yellow)
+        }
+
+        .mock-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 9px
+        }
+
+        .mstat {
+            border: var(--border);
+            padding: 11px;
+            text-align: center
+        }
+
+        .mstat-n {
+            font-family: var(--font-mono);
+            font-size: 22px;
+            font-weight: 700;
+            display: block
+        }
+
+        .mstat-ic {
+            width: 32px;
+            height: 32px;
+            margin: 7px auto 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: var(--border)
+        }
+
+        .bg-y {
+            background: var(--yellow)
+        }
+
+        .bg-t {
+            background: var(--teal)
+        }
+
+        .bg-r {
+            background: var(--red);
+            color: #fff
+        }
+
+        .mstat-l {
+            font-size: 9px;
+            color: #777;
+            font-family: var(--font-mono);
+            margin-top: 3px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: .05em
+        }
+
+        /* ── PRICING ── */
+        .pricing {
+            background: var(--black);
+            color: #fff;
+            border-top: var(--border);
+            border-bottom: var(--border);
+            padding: 96px 48px
+        }
+
+        .pricing .section-label {
+            color: #444
+        }
+
+        .pricing .section-label::before {
+            background: #fff
+        }
+
+        .pricing .section-title {
+            color: #fff
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            max-width: 780px;
+            margin: 52px auto 0;
+            border: 2px solid #1e1e1e
+        }
+
+        .plan {
+            padding: 42px 38px;
+            border-right: 2px solid #1e1e1e;
+            position: relative
+        }
+
+        .plan:last-child {
+            border-right: none
+        }
+
+        .plan-popular {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--yellow);
+            color: var(--black);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            padding: 5px 13px;
+            border-left: 2px solid #1e1e1e;
+            border-bottom: 2px solid #1e1e1e
+        }
+
+        .plan-name {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .1em;
+            color: #555;
+            text-transform: uppercase;
+            margin-bottom: 14px
+        }
+
+        .plan-price {
+            font-family: var(--font-display);
+            font-size: 52px;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1
+        }
+
+        .plan-price span {
+            font-family: var(--font-mono);
+            font-size: 15px;
+            color: #555;
+            font-weight: 400;
+            vertical-align: middle
+        }
+
+        .plan-desc {
+            font-size: 13px;
+            color: #555;
+            margin: 15px 0 26px;
+            line-height: 1.6
+        }
+
+        .plan-features {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 34px
+        }
+
+        .plan-features li {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #aaa;
+            display: flex;
+            align-items: center;
+            gap: 9px
+        }
+
+        .plan-features li .pi {
+            flex-shrink: 0
+        }
+
+        .plan-btn {
+            border: 2px solid #333;
+            color: #fff;
+            background: transparent;
+            padding: 12px 22px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+            transition: background .12s, color .12s, border-color .12s
+        }
+
+        .plan-btn:hover {
+            background: #fff;
+            color: var(--black);
+            border-color: #fff
+        }
+
+        .plan-btn.pb-pro {
+            background: var(--yellow);
+            color: var(--black);
+            border-color: var(--yellow)
+        }
+
+        .plan-btn.pb-pro:hover {
+            background: #e6bb00;
+            border-color: #e6bb00
+        }
+
+        /* ── CTA ── */
+        .cta-strip {
+            background: var(--yellow);
+            border-bottom: var(--border);
+            padding: 84px 48px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 44px
+        }
+
+        .cta-strip h2 {
+            font-family: var(--font-display);
+            font-size: clamp(28px, 4vw, 56px);
+            font-weight: 800;
+            line-height: 1.0;
+            letter-spacing: -.025em;
+            color: var(--black)
+        }
+
+        .cta-strip h2 span {
+            text-decoration: underline;
+            text-decoration-thickness: 4px;
+            text-underline-offset: 6px
+        }
+
+        .cta-right {
+            display: flex;
+            flex-direction: column;
+            gap: 11px;
+            align-items: flex-end;
+            flex-shrink: 0
+        }
+
+        .btn-black {
+            background: var(--black);
+            color: var(--yellow);
+            border: var(--border);
+            padding: 15px 34px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 5px 5px 0 rgba(0, 0, 0, .3);
+            transition: transform .12s, box-shadow .12s;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 9px
+        }
+
+        .btn-black:hover {
+            transform: translate(-3px, -3px);
+            box-shadow: 8px 8px 0 rgba(0, 0, 0, .3)
+        }
+
+        .cta-note {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #555;
+            text-align: right
+        }
+
+        /* ── FOOTER ── */
+        footer {
+            background: var(--black);
+            border-top: var(--border);
+            padding: 52px 48px 28px
+        }
+
+        .footer-top {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 44px;
+            padding-bottom: 44px;
+            border-bottom: 2px solid #141414
+        }
+
+        .footer-brand-name {
+            font-family: var(--font-mono);
+            font-size: 17px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: .05em;
+            margin-bottom: 11px;
+            display: flex;
+            align-items: center;
+            gap: 9px
+        }
+
+        .footer-brand-desc {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+            max-width: 250px
+        }
+
+        .footer-col-title {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .1em;
+            color: #333;
+            text-transform: uppercase;
+            margin-bottom: 14px
+        }
+
+        .footer-links {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 9px
+        }
+
+        .footer-links a {
+            font-size: 13px;
+            color: #555;
+            text-decoration: none;
+            transition: color .12s
+        }
+
+        .footer-links a:hover {
+            color: var(--yellow)
+        }
+
+        .footer-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 24px;
+            flex-wrap: wrap;
+            gap: 12px
+        }
+
+        .footer-copy {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: #2a2a2a;
+            letter-spacing: .04em
+        }
+
+        .footer-badges {
+            display: flex;
+            gap: 9px
+        }
+
+        .f-badge {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            font-weight: 700;
+            border: 1.5px solid #1e1e1e;
+            padding: 4px 9px;
+            color: #444;
+            letter-spacing: .06em
+        }
+
+        /* ── RESPONSIVE ── */
+        @media(max-width:900px) {
+            nav {
+                padding: 0 20px;
+                position: relative
+            }
+
+            .nav-links {
+                display: none
+            }
+
+            .nav-hamburger {
+                display: flex
+            }
+
+            .hero {
+                grid-template-columns: 1fr;
+                min-height: auto
+            }
+
+            .hero-left {
+                border-right: none;
+                border-bottom: var(--border);
+                padding: 52px 28px
+            }
+
+            .hero-right {
+                display: none
+            }
+
+            .hero-stats {
+                flex-wrap: wrap
+            }
+
+            .hero-stat {
+                flex: 1 1 calc(50% - 1px)
+            }
+
+            .process-header {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                margin-bottom: 40px
+            }
+
+            .process {
+                padding: 64px 24px
+            }
+
+            .ps-body {
+                padding: 20px 20px
+            }
+
+            .ps-chips {
+                display: none
+            }
+
+            .collab-section {
+                padding: 64px 24px
+            }
+
+            .collab-grid {
+                grid-template-columns: 1fr
+            }
+
+            .collab-item {
+                border-right: none !important;
+                border-bottom: 2px solid #1e1e1e !important
+            }
+
+            .collab-item:last-child {
+                border-bottom: none !important
+            }
+
+            .features {
+                padding: 64px 24px
+            }
+
+            .features-header {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                margin-bottom: 40px
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr 1fr
+            }
+
+            .feat:nth-child(3) {
+                border-right: var(--border)
+            }
+
+            .feat:nth-child(2n) {
+                border-right: none
+            }
+
+            .feat:nth-child(n+5) {
+                border-bottom: none
+            }
+
+            .feat:nth-child(3) {
+                border-bottom: var(--border)
+            }
+
+            .feat:nth-child(4) {
+                border-bottom: none
+            }
+
+            .roles {
+                padding: 64px 24px
+            }
+
+            .roles-grid {
+                grid-template-columns: 1fr
+            }
+
+            .preview {
+                padding: 64px 24px
+            }
+
+            .preview-tabs {
+                width: 100%;
+                flex-wrap: wrap
+            }
+
+            .ptab {
+                flex: 1 1 auto;
+                justify-content: center;
+                font-size: 10px;
+                padding: 9px 12px
+            }
+
+            .preview-body {
+                padding: 20px 16px
+            }
+
+            .mock-grid {
+                grid-template-columns: 1fr
+            }
+
+            .mock-side {
+                display: none
+            }
+
+            .pricing {
+                padding: 64px 24px
+            }
+
+            .pricing-grid {
+                grid-template-columns: 1fr;
+                max-width: 100%
+            }
+
+            .plan {
+                border-right: none;
+                border-bottom: 2px solid #1e1e1e
+            }
+
+            .plan:last-child {
+                border-bottom: none
+            }
+
+            .cta-strip {
+                grid-template-columns: 1fr;
+                padding: 56px 24px;
+                gap: 28px
+            }
+
+            .cta-right {
+                align-items: flex-start
+            }
+
+            .cta-note {
+                text-align: left
+            }
+
+            footer {
+                padding: 44px 24px 24px
+            }
+
+            .footer-top {
+                grid-template-columns: 1fr 1fr;
+                gap: 28px
+            }
+
+            .section-title {
+                font-size: clamp(26px, 7vw, 40px)
+            }
+        }
+
+        @media(max-width:560px) {
+            .hero-left {
+                padding: 40px 20px
+            }
+
+            .hero-stats {
+                flex-wrap: wrap
+            }
+
+            .hero-stat {
+                flex: 1 1 50%;
+                border-bottom: var(--border)
+            }
+
+            .hero-stat:nth-child(3),
+            .hero-stat:nth-child(4) {
+                border-bottom: none
+            }
+
+            .hero-stat:nth-child(2n) {
+                border-right: none
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr
+            }
+
+            .feat {
+                border-right: none !important
+            }
+
+            .feat:nth-child(n) {
+                border-bottom: var(--border) !important
+            }
+
+            .feat:last-child {
+                border-bottom: none !important
+            }
+
+            .preview-tabs {
+                flex-wrap: wrap
+            }
+
+            .ptab {
+                min-width: calc(50% - 1px);
+                font-size: 9px;
+                padding: 8px 6px
+            }
+
+            .footer-top {
+                grid-template-columns: 1fr
+            }
+
+            .process-step {
+                grid-template-columns: 52px 1fr
+            }
+
+            .ps-num {
+                font-size: 18px
+            }
+
+            .ps-body {
+                padding: 16px 14px;
+                gap: 12px
+            }
+
+            .ps-icon {
+                width: 38px;
+                height: 38px
+            }
+
+            .ps-title {
+                font-size: 12px
+            }
+
+            .ps-desc {
+                font-size: 12px
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ── NAV ── -->
+    <nav>
+        <a href="#" class="nav-logo">
+            <div class="nav-logo-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+            </div>
+            <div class="nav-logo-text">RESEARCH CITADEL<span>Research Workspace</span></div>
+        </a>
+        <ul class="nav-links">
+            <li><a href="#process">How It Works</a></li>
+            <li><a href="#collab">Collaboration</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#" class="nav-cta">Get Started →</a></li>
+        </ul>
+        <button class="nav-hamburger" onclick="toggleMenu(this)" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
+    </nav>
+    <nav class="nav-mobile" id="nav-mobile">
+        <a href="#process" onclick="closeMenu()">How It Works</a>
+        <a href="#collab" onclick="closeMenu()">Collaboration</a>
+        <a href="#features" onclick="closeMenu()">Features</a>
+        <a href="#pricing" onclick="closeMenu()">Pricing</a>
+        <a href="#">Get Started →</a>
+    </nav>
+
+    <!-- ── TICKER ── -->
+    <div class="ticker-wrap">
+        <div class="ticker-track">
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg> RESEARCH VAULTS</div>
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 3v2M12 19v2M3 12h2M19 12h2" />
+                </svg> GROUNDED AI Q&amp;A</div>
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg> REAL-TIME COLLAB</div>
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                </svg> PDF + WEB ARTICLES</div>
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg> ROLE-BASED ACCESS</div>
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon
+                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg> AI INSIGHT EXTRACTION</div>
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg> TEAM CHAT</div>
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg> LIVE ANNOTATIONS</div>
+            <!-- duplicate for seamless loop -->
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg> RESEARCH VAULTS</div>
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 3v2M12 19v2M3 12h2M19 12h2" />
+                </svg> GROUNDED AI Q&amp;A</div>
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg> REAL-TIME COLLAB</div>
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                </svg> PDF + WEB ARTICLES</div>
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg> ROLE-BASED ACCESS</div>
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon
+                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg> AI INSIGHT EXTRACTION</div>
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg> TEAM CHAT</div>
+            <div class="ticker-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg> LIVE ANNOTATIONS</div>
+        </div>
+    </div>
+
+    <!-- ── HERO ── -->
+    <section class="hero">
+        <div class="hero-left">
+            <div class="hero-badge reveal">
+                <span class="live-dot"></span> Grounded AI Q&amp;A is live
+            </div>
+            <h1 class="hero-title reveal" style="animation-delay:.1s">
+                Where Teams<br>Do Real<br><span class="hl">Research.</span>
+            </h1>
+            <p class="hero-subtitle reveal" style="animation-delay:.18s">
+                Create shared vaults, upload your papers, annotate in real-time with your team, and get AI answers
+                grounded strictly in your own documents.
+            </p>
+            <div class="hero-actions reveal" style="animation-delay:.26s">
+                <a href="#" class="btn-primary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h6v6" />
+                        <path d="M10 14L21 3" />
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    </svg>
+                    Start for Free
+                </a>
+                <a href="#process" class="btn-secondary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <polygon points="10 8 16 12 10 16 10 8" />
+                    </svg>
+                    See How It Works
+                </a>
+            </div>
+            <div class="hero-stats reveal" style="animation-delay:.34s">
+                <div class="hero-stat">
+                    <div class="hero-stat-number">3</div>
+                    <div class="hero-stat-label">Access Roles</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-number">∞</div>
+                    <div class="hero-stat-label">Annotations</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-number">PDF</div>
+                    <div class="hero-stat-label">+ Web Articles</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-number">AI</div>
+                    <div class="hero-stat-label">Grounded Q&amp;A</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-right">
+            <div class="vault-card">
+                <div class="vc-header">
+                    <div class="vc-tags"><span class="tag tag-private">PRIVATE</span><span class="tag tag-yellow">ROLE:
+                            OWNER</span></div>
+                    <span class="vc-role">AUTHORIZED</span>
+                </div>
+                <div class="vc-title">ARTIFICIAL INTELLIGENCE FOUNDATIONS</div>
+                <div class="vc-desc">Core papers on deep learning, transformer architectures…</div>
+                <div class="vc-footer">
+                    <span class="vc-sources">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                        </svg>
+                        2 Sources
+                    </span>
+                </div>
+            </div>
+            <div class="vault-card">
+                <div class="vc-header">
+                    <div class="vc-tags"><span class="tag tag-public">PUBLIC</span><span class="tag tag-white">ROLE:
+                            CONTRIBUTOR</span></div>
+                </div>
+                <div class="vc-title">CLIMATE IMPACT &amp; RENEWABLE DATASETS</div>
+                <div class="vc-desc">Atmospheric simulation logs, grid integration…</div>
+                <div class="vc-footer">
+                    <span class="vc-sources">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                        </svg>
+                        0 Sources
+                    </span>
+                    <a href="#" class="vc-action">INSPECT →</a>
+                </div>
+            </div>
+            <div class="ai-card">
+                <div class="ai-card-header">
+                    <span class="live-dot"></span>
+                    <span class="ai-label">AI Q&amp;A — GROUNDED RESPONSE</span>
+                </div>
+                <div class="ai-msg" id="ai-typewriter"></div>
+                <div class="typing-dots" id="typing-dots" style="margin-top:8px"><span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── PROCESS ── -->
+    <section class="process" id="process">
+        <div class="process-header">
+            <div class="reveal-left">
+                <div class="section-label">Process</div>
+                <h2 class="section-title">From paper to<br>insight, step by step.</h2>
+            </div>
+            <p class="reveal-right">Research Citadel is built around how teams actually work — create vaults, upload
+                papers, analyse with AI, annotate together, and communicate without ever leaving the platform.</p>
+        </div>
+
+        <div id="process-timeline">
+
+            <div class="process-step reveal s1">
+                <div class="ps-num">01</div>
+                <div class="ps-body">
+                    <div class="ps-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD000" stroke-width="2.5"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                    </div>
+                    <div class="ps-content">
+                        <span class="ps-tag">SETUP</span>
+                        <div class="ps-title">Create a Research Vault</div>
+                        <div class="ps-desc">Spin up a shared workspace for your project. Set it public or private, add
+                            a description, and it's ready for your team in seconds.</div>
+                        <div class="ps-chips">
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" />
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </svg> Public or Private</span>
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                </svg> Invite Your Team</span>
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                </svg> Role-Based Access</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="connector"></div>
+
+            <div class="process-step reveal s2">
+                <div class="ps-num">02</div>
+                <div class="ps-body">
+                    <div class="ps-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD000" stroke-width="2.5"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="12" y1="18" x2="12" y2="12" />
+                            <line x1="9" y1="15" x2="15" y2="15" />
+                        </svg>
+                    </div>
+                    <div class="ps-content">
+                        <span class="ps-tag">INGEST</span>
+                        <div class="ps-title">Upload Your Sources</div>
+                        <div class="ps-desc">Drag in PDFs or paste web article URLs. Full text is extracted and
+                            semantically indexed — every source becomes immediately queryable by AI.</div>
+                        <div class="ps-chips">
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                </svg> PDF Files</span>
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                </svg> Web Articles</span>
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <ellipse cx="12" cy="5" rx="9" ry="3" />
+                                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                                </svg> Auto-Indexed</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="connector"></div>
+
+            <div class="process-step reveal s3">
+                <div class="ps-num">03</div>
+                <div class="ps-body">
+                    <div class="ps-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD000" stroke-width="2.5"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <polygon
+                                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                    </div>
+                    <div class="ps-content">
+                        <span class="ps-tag">ANALYSE</span>
+                        <div class="ps-title">Get AI Insights &amp; Summaries</div>
+                        <div class="ps-desc">Instantly extract research problem, methodology, key findings,
+                            contributions, limitations, and future work — auto-generated, grounded in the source.</div>
+                        <div class="ps-chips">
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg> AI Summaries</span>
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg> Key Findings</span>
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path
+                                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                    <line x1="12" y1="9" x2="12" y2="13" />
+                                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                                </svg> Limitations</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="connector"></div>
+
+            <div class="process-step reveal s4">
+                <div class="ps-num">04</div>
+                <div class="ps-body">
+                    <div class="ps-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD000" stroke-width="2.5"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                    </div>
+                    <div class="ps-content">
+                        <span class="ps-tag">QUERY</span>
+                        <div class="ps-title">Ask the AI Anything</div>
+                        <div class="ps-desc">Select which sources to query, ask free-form questions. The AI answers
+                            using only your documents — no hallucinations, no outside knowledge.</div>
+                        <div class="ps-chips">
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                                </svg> Free-form Q&amp;A</span>
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg> Source-scoped</span>
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                                </svg> Quick Prompts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="connector"></div>
+
+            <div class="process-step collab-step reveal s5">
+                <div class="ps-num">05</div>
+                <div class="ps-body">
+                    <div class="ps-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2.5"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                        </svg>
+                    </div>
+                    <div class="ps-content">
+                        <span class="ps-tag">ANNOTATE</span>
+                        <div class="ps-title">Annotate &amp; Collaborate Live</div>
+                        <div class="ps-desc">Write Markdown notes mapped to exact pages and sections. Your whole team
+                            sees changes in real-time with intelligent conflict detection and version history.</div>
+                        <div class="ps-chips">
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                </svg> Live Co-editing</span>
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <circle cx="18" cy="18" r="3" />
+                                    <circle cx="6" cy="6" r="3" />
+                                    <path d="M6 21V9a9 9 0 0 0 9 9" />
+                                </svg> Conflict Resolver</span>
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="12 8 12 12 14 14" />
+                                    <path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5" />
+                                </svg> Version History</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="connector"></div>
+
+            <div class="process-step collab-step reveal s6">
+                <div class="ps-num">06</div>
+                <div class="ps-body">
+                    <div class="ps-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2.5"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                    </div>
+                    <div class="ps-content">
+                        <span class="ps-tag">COMMUNICATE</span>
+                        <div class="ps-title">Chat &amp; Coordinate as a Team</div>
+                        <div class="ps-desc">Each vault has a dedicated chat stream. Discuss findings, @mention
+                            teammates, reply to threads, and use slash commands to reference sources inline.</div>
+                        <div class="ps-chips">
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="4" />
+                                    <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" />
+                                </svg> @mentions</span>
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="15 10 20 15 15 20" />
+                                    <path d="M4 4v7a4 4 0 0 0 4 4h12" />
+                                </svg> Threaded Replies</span>
+                            <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="4 17 10 11 4 5" />
+                                    <line x1="12" y1="19" x2="20" y2="19" />
+                                </svg> Slash Commands</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── COLLABORATION ── -->
+    <section class="collab-section" id="collab">
+        <div class="section-label reveal">Collaboration</div>
+        <h2 class="section-title reveal" style="animation-delay:.08s">Built for teams who think together.</h2>
+        <div class="collab-grid">
+
+            <div class="collab-item reveal s1">
+                <div class="ci-top">
+                    <div class="ci-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#aaa"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg></div>
+                    <span class="ci-badge">REAL-TIME</span>
+                </div>
+                <div class="ci-title">Live Co-Presence</div>
+                <div class="ci-desc">See exactly who's in the workspace, what they're editing, and what they're viewing
+                    — all in real time. No more "who changed what" confusion.</div>
+                <div class="ci-preview">
+                    <div class="presence-strip">
+                        <span class="presence-dot editing">SEER IJJ · EDITING</span>
+                        <span class="presence-dot editing">PROF. CARTER · EDITING</span>
+                        <span class="presence-dot viewing">DR. ROSTOVA · VIEWING</span>
+                    </div>
+                    <div
+                        style="border:1.5px solid #222;padding:9px 12px;font-size:11px;color:#555;line-height:1.5;font-family:var(--font-mono)">
+                        Section 3.2.2 Multi-Head Attention<span
+                            style="border-right:2px solid var(--yellow);animation:blink .8s step-end infinite;margin-left:2px">&nbsp;</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="collab-item reveal s2">
+                <div class="ci-top">
+                    <div class="ci-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#aaa"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg></div>
+                    <span class="ci-badge">LIVE CHAT</span>
+                </div>
+                <div class="ci-title">Vault Chat Channels</div>
+                <div class="ci-desc">Each vault has a dedicated chat stream. Discuss findings, reply to threads,
+                    @mention teammates, and pull source references with slash commands.</div>
+                <div class="ci-preview">
+                    <div class="chat-bubble them">
+                        <div class="sender">PROF. CARTER · 22:03</div>We should update annotations. Use /refer [id] to
+                        link them.
+                    </div>
+                    <div class="chat-bubble me">
+                        <div class="sender">SEER IJJ · 22:10</div>yeah, on it now
+                    </div>
+                    <div class="chat-bubble them" id="live-chat-msg3">
+                        <div class="sender">PROF. CARTER · 22:11</div>Have we validated with benchmark datasets?
+                    </div>
+                </div>
+            </div>
+
+            <div class="collab-item reveal s3">
+                <div class="ci-top">
+                    <div class="ci-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#aaa"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="18" cy="18" r="3" />
+                            <circle cx="6" cy="6" r="3" />
+                            <path d="M6 21V9a9 9 0 0 0 9 9" />
+                        </svg></div>
+                    <span class="ci-badge">SMART MERGE</span>
+                </div>
+                <div class="ci-title">Conflict Resolution</div>
+                <div class="ci-desc">When two collaborators edit the same annotation simultaneously, the resolver
+                    surfaces both versions so you can decide — no work is ever lost.</div>
+                <div class="ci-preview">
+                    <div style="border:1.5px solid #2a2a2a;padding:10px 12px;margin-bottom:8px">
+                        <div
+                            style="font-size:9px;color:#555;font-family:var(--font-mono);letter-spacing:.06em;margin-bottom:5px">
+                            CONFLICT DETECTED · CO-SCHOLAR UPDATE</div>
+                        <div style="font-size:11px;color:#777;line-height:1.5;font-family:var(--font-mono)">Prof. Carter
+                            saved a revision. Click Save to resolve.</div>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <div
+                            style="flex:1;border:1.5px solid #2a2a2a;padding:6px 9px;font-size:10px;color:#555;font-family:var(--font-mono)">
+                            YOUR VERSION</div>
+                        <div
+                            style="flex:1;border:1.5px solid var(--yellow);padding:6px 9px;font-size:10px;color:var(--yellow);font-family:var(--font-mono);background:#1a1a00">
+                            THEIRS</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="collab-item reveal s4">
+                <div class="ci-top">
+                    <div class="ci-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#aaa"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="12 8 12 12 14 14" />
+                            <path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5" />
+                        </svg></div>
+                    <span class="ci-badge">VERSIONED</span>
+                </div>
+                <div class="ci-title">Annotation Version History</div>
+                <div class="ci-desc">Every save is tracked. Browse the full history of any annotation, see who wrote
+                    what and when, and restore any previous version instantly.</div>
+                <div class="ci-preview">
+                    <div class="version-row"><span class="ver-label">v3 · SEER IJJ · 22:18</span><span
+                            class="ver-tag latest">LATEST</span></div>
+                    <div class="version-row"><span class="ver-label">v2 · PROF. CARTER · 22:10</span><span
+                            class="ver-tag">RESTORE</span></div>
+                    <div class="version-row"><span class="ver-label">v1 · SEER IJJ · 22:03</span><span
+                            class="ver-tag">RESTORE</span></div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ── FEATURES ── -->
+    <section class="features" id="features">
+        <div class="features-header">
+            <div class="reveal-left">
+                <div class="section-label">Features</div>
+                <h2 class="section-title">Everything your research team needs.</h2>
+            </div>
+            <p class="reveal-right">Research Citadel is built for teams who take their work seriously — from solo
+                researchers to multi-institution collaborations.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feat reveal s1">
+                <div class="feat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD000"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg></div>
+                <div class="feat-title">Research Vaults</div>
+                <div class="feat-desc">Isolated workspaces per project. Set public or private, write abstracts, and
+                    control access with granular roles.</div>
+            </div>
+            <div class="feat reveal s2">
+                <div class="feat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD000"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                    </svg></div>
+                <div class="feat-title">Citation Library</div>
+                <div class="feat-desc">Upload PDFs or add web article URLs. Store full metadata — authors, journal,
+                    year, DOI — all organised and searchable.</div>
+            </div>
+            <div class="feat reveal s3">
+                <div class="feat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD000"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon
+                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg></div>
+                <div class="feat-title">AI Insights</div>
+                <div class="feat-desc">Auto-extract research problems, methodology, key findings, contributions,
+                    limitations, and future work from every paper.</div>
+            </div>
+            <div class="feat reveal s4">
+                <div class="feat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD000"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg></div>
+                <div class="feat-title">Grounded Q&amp;A</div>
+                <div class="feat-desc">Ask anything about your sources. Answers come only from your corpus — fully
+                    grounded, zero hallucinations, select per-query.</div>
+            </div>
+            <div class="feat reveal s5">
+                <div class="feat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD000"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg></div>
+                <div class="feat-title">Live Annotations</div>
+                <div class="feat-desc">Markdown notes mapped to exact pages and sections. Real-time collaboration with
+                    conflict detection and full version history.</div>
+            </div>
+            <div class="feat reveal s6">
+                <div class="feat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFD000"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg></div>
+                <div class="feat-title">Team Chat</div>
+                <div class="feat-desc">Per-vault chat with threading, replies, typing indicators, and slash commands to
+                    reference sources — right where the research lives.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── ROLES ── -->
+    <section class="roles">
+        <div class="section-label reveal">Access Control</div>
+        <h2 class="section-title reveal" style="animation-delay:.08s">The right access<br>for every collaborator.</h2>
+        <div class="roles-grid">
+            <div class="role-card reveal s1">
+                <div class="role-header">
+                    <div class="role-name">OWNER</div>
+                    <span class="role-badge owner">FULL ACCESS</span>
+                </div>
+                <ul class="role-perms">
+                    <li><svg class="perm-ok" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Create &amp; dismantle vaults</li>
+                    <li><svg class="perm-ok" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Manage all members &amp; roles</li>
+                    <li><svg class="perm-ok" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Add, edit &amp; delete sources</li>
+                    <li><svg class="perm-ok" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Annotate &amp; chat</li>
+                    <li><svg class="perm-ok" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Configure vault settings</li>
+                    <li><svg class="perm-ok" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Full audit log</li>
+                </ul>
+            </div>
+            <div class="role-card reveal s2">
+                <div class="role-header">
+                    <div class="role-name">CONTRIBUTOR</div>
+                    <span class="role-badge contributor">EDIT ACCESS</span>
+                </div>
+                <ul class="role-perms">
+                    <li><svg class="perm-no" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg> Vault management</li>
+                    <li><svg class="perm-ok" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Invite &amp; message members</li>
+                    <li><svg class="perm-ok" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Add &amp; edit sources</li>
+                    <li><svg class="perm-ok" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Annotate &amp; chat</li>
+                    <li><svg class="perm-no" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg> Vault settings</li>
+                    <li><svg class="perm-ok" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> View audit log</li>
+                </ul>
+            </div>
+            <div class="role-card reveal s3">
+                <div class="role-header">
+                    <div class="role-name">VIEWER</div>
+                    <span class="role-badge viewer">READ ONLY</span>
+                </div>
+                <ul class="role-perms">
+                    <li><svg class="perm-no" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg> Vault management</li>
+                    <li><svg class="perm-no" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg> Member management</li>
+                    <li><svg class="perm-no" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg> Add or edit sources</li>
+                    <li><svg class="perm-ok" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Read annotations &amp; chat</li>
+                    <li><svg class="perm-no" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg> Vault settings</li>
+                    <li><svg class="perm-ok" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> View summaries &amp; insights</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── PREVIEW ── -->
+    <section class="preview">
+        <div class="section-label reveal">Platform Preview</div>
+        <h2 class="section-title reveal" style="animation-delay:.08s">Built for how researchers actually work.</h2>
+        <div class="preview-tabs reveal" style="animation-delay:.16s">
+            <div class="ptab active" onclick="switchPanel(this,'pv-dash')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="14" y="14" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                </svg>
+                Dashboard
+            </div>
+            <div class="ptab" onclick="switchPanel(this,'pv-cites')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+                Citations
+            </div>
+            <div class="ptab" onclick="switchPanel(this,'pv-ai')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 3v2M12 19v2M3 12h2M19 12h2" />
+                </svg>
+                AI Q&amp;A
+            </div>
+            <div class="ptab" onclick="switchPanel(this,'pv-team')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                Team
+            </div>
+        </div>
+        <div class="preview-frame reveal" style="animation-delay:.22s">
+            <div class="preview-bar">
+                <div class="win-dot r"></div>
+                <div class="win-dot y"></div>
+                <div class="win-dot g"></div>
+                <div class="preview-url" id="pv-url">https://app.researchcitadel.com/vault/ai-foundations</div>
+            </div>
+            <div class="preview-body">
+
+                <div id="pv-dash" class="panel active">
+                    <div class="mock-grid">
+                        <div class="mock-side">
+                            <div class="mock-side-title">VAULT NODES <span class="auth-badge">AUTH</span></div>
+                            <div class="mock-vc active-vc">
+                                <div class="mvc-tags"><span class="tag tag-private">PRIVATE</span><span
+                                        class="tag tag-yellow" style="font-size:9px">OWNER</span></div>
+                                <div class="mvc-title">AI FOUNDATIONS</div>
+                                <div class="mvc-desc">Core papers on deep learning, transformer architectures…</div>
+                                <div class="mvc-src"><svg width="9" height="9" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14 2 14 8 20 8" />
+                                    </svg> 2 Sources</div>
+                            </div>
+                            <div class="mock-vc">
+                                <div class="mvc-tags"><span class="tag tag-public">PUBLIC</span><span
+                                        class="tag tag-white" style="font-size:9px">CONTRIBUTOR</span></div>
+                                <div class="mvc-title">CLIMATE DATASETS</div>
+                                <div class="mvc-desc">Atmospheric simulation logs, grid integration…</div>
+                                <div class="mvc-src"><svg width="9" height="9" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14 2 14 8 20 8" />
+                                    </svg> 0 Sources</div>
+                            </div>
+                        </div>
+                        <div class="mock-main">
+                            <div class="mock-main-hdr">
+                                <div
+                                    style="font-family:var(--font-mono);font-size:9px;color:#888;margin-bottom:5px;letter-spacing:.08em">
+                                    WORKSPACE · <span style="color:#c0392b">PRIVATE</span></div>
+                                <div
+                                    style="font-family:var(--font-mono);font-size:15px;font-weight:700;display:flex;align-items:center;gap:7px">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c0392b"
+                                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" />
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                    </svg>
+                                    AI FOUNDATIONS
+                                </div>
+                            </div>
+                            <div class="mock-tabs">
+                                <div class="mtab a">Stats</div>
+                                <div class="mtab">Citations</div>
+                                <div class="mtab">Annotations</div>
+                                <div class="mtab">Chat</div>
+                                <div class="mtab">Q/A</div>
+                            </div>
+                            <div class="mock-stats">
+                                <div class="mstat"><span class="mstat-n">4</span>
+                                    <div class="mstat-ic bg-y"><svg width="16" height="16" viewBox="0 0 24 24"
+                                            fill="none" stroke="#0A0A0A" stroke-width="2.5" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                                        </svg></div><span class="mstat-l">Activity</span>
+                                </div>
+                                <div class="mstat"><span class="mstat-n">3</span>
+                                    <div class="mstat-ic bg-t"><svg width="16" height="16" viewBox="0 0 24 24"
+                                            fill="none" stroke="#0A0A0A" stroke-width="2.5" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                            <circle cx="9" cy="7" r="4" />
+                                        </svg></div><span class="mstat-l">Contributors</span>
+                                </div>
+                                <div class="mstat"><span class="mstat-n">2</span>
+                                    <div class="mstat-ic bg-r"><svg width="16" height="16" viewBox="0 0 24 24"
+                                            fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                            <polyline points="14 2 14 8 20 8" />
+                                        </svg></div><span class="mstat-l">Sources</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pv-cites" class="panel">
+                    <div style="max-width:700px;margin:0 auto">
+                        <div
+                            style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:10px;flex-wrap:wrap">
+                            <div
+                                style="border:var(--border);padding:9px 14px;flex:1;min-width:180px;font-family:var(--font-mono);font-size:11px;color:#aaa;display:flex;align-items:center;gap:7px;background:#fff">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                </svg> Filter by title, author…</div>
+                            <div
+                                style="background:var(--yellow);border:var(--border);box-shadow:var(--shadow);padding:9px 16px;font-family:var(--font-mono);font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg> Add Reference</div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                            <div style="border:var(--border);padding:18px;box-shadow:var(--shadow);background:#fff">
+                                <div style="display:flex;gap:5px;margin-bottom:10px"><span
+                                        class="tag tag-yellow">PDF</span><span class="tag tag-teal">Q&A READY</span>
+                                </div>
+                                <div
+                                    style="font-family:var(--font-mono);font-size:13px;font-weight:700;margin-bottom:8px">
+                                    Attention Is All You Need</div>
+                                <div
+                                    style="font-size:11px;color:#666;line-height:1.6;display:flex;flex-direction:column;gap:3px">
+                                    <span style="display:flex;align-items:center;gap:5px"><svg width="10" height="10"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                            <circle cx="12" cy="7" r="4" />
+                                        </svg> Vaswani A., Shazeer N…</span>
+                                    <span style="display:flex;align-items:center;gap:5px"><svg width="10" height="10"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                                        </svg> NeurIPS Conference</span>
+                                    <span style="display:flex;align-items:center;gap:5px"><svg width="10" height="10"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                            <line x1="16" y1="2" x2="16" y2="6" />
+                                            <line x1="8" y1="2" x2="8" y2="6" />
+                                            <line x1="3" y1="10" x2="21" y2="10" />
+                                        </svg> 2017</span>
+                                </div>
+                                <div
+                                    style="margin-top:12px;border-top:var(--border);padding-top:10px;font-family:var(--font-mono);font-size:10px;color:#c0392b;font-weight:700">
+                                    View document analysis →</div>
+                            </div>
+                            <div style="border:var(--border);padding:18px;box-shadow:var(--shadow);background:#fff">
+                                <div style="display:flex;gap:5px;margin-bottom:10px"><span class="tag"
+                                        style="background:#e5f0ff;color:#1a56db;border-color:#1a56db">WEB</span><span
+                                        class="tag tag-white">TEXT ONLY</span></div>
+                                <div
+                                    style="font-family:var(--font-mono);font-size:13px;font-weight:700;margin-bottom:8px">
+                                    Gemini: A Family of Highly Capable…</div>
+                                <div
+                                    style="font-size:11px;color:#666;line-height:1.6;display:flex;flex-direction:column;gap:3px">
+                                    <span style="display:flex;align-items:center;gap:5px"><svg width="10" height="10"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                            <circle cx="12" cy="7" r="4" />
+                                        </svg> Google Gemini Team…</span>
+                                    <span style="display:flex;align-items:center;gap:5px"><svg width="10" height="10"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                                        </svg> Google DeepMind</span>
+                                    <span style="display:flex;align-items:center;gap:5px"><svg width="10" height="10"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                            <line x1="16" y1="2" x2="16" y2="6" />
+                                            <line x1="8" y1="2" x2="8" y2="6" />
+                                            <line x1="3" y1="10" x2="21" y2="10" />
+                                        </svg> 2024</span>
+                                </div>
+                                <div
+                                    style="margin-top:12px;border-top:var(--border);padding-top:10px;font-family:var(--font-mono);font-size:10px;color:#c0392b;font-weight:700">
+                                    View document analysis →</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pv-ai" class="panel">
+                    <div
+                        style="max-width:700px;margin:0 auto;border:var(--border);background:#fff;box-shadow:var(--shadow)">
+                        <div
+                            style="background:var(--black);padding:11px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                            <div
+                                style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--yellow);letter-spacing:.08em;display:flex;align-items:center;gap:7px">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path d="M12 3v2M12 19v2M3 12h2M19 12h2" />
+                                </svg> GROUNDED Q/A PANEL</div>
+                            <div style="font-family:var(--font-mono);font-size:10px;color:#444">2 sources selected</div>
+                        </div>
+                        <div style="padding:18px;display:flex;flex-direction:column;gap:12px">
+                            <div
+                                style="background:#f5f2eb;border:var(--border);padding:12px 14px;align-self:flex-end;max-width:80%;font-size:12px;line-height:1.5">
+                                What is the core innovation in the Transformer?</div>
+                            <div
+                                style="background:#fff;border:var(--border);border-left:4px solid var(--green);padding:12px 14px;font-size:12px;color:#333;line-height:1.65;max-width:90%">
+                                <div
+                                    style="font-family:var(--font-mono);font-size:9px;color:var(--green);letter-spacing:.08em;display:flex;align-items:center;gap:5px;margin-bottom:7px">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg> GROUNDED · Vaswani et al. (2017)</div>
+                                The core innovation is replacing recurrence with self-attention, allowing parallel
+                                computation across all input positions and capturing long-range dependencies more
+                                directly than RNNs or LSTMs.
+                            </div>
+                            <div style="display:flex;gap:7px;flex-wrap:wrap">
+                                <div
+                                    style="border:var(--border);padding:6px 12px;font-family:var(--font-mono);font-size:10px;cursor:pointer;background:#f5f2eb">
+                                    Limitations?</div>
+                                <div
+                                    style="border:var(--border);padding:6px 12px;font-family:var(--font-mono);font-size:10px;cursor:pointer;background:#f5f2eb">
+                                    Multi-head attention</div>
+                                <div
+                                    style="border:var(--border);padding:6px 12px;font-family:var(--font-mono);font-size:10px;cursor:pointer;background:#f5f2eb">
+                                    vs. LSTM</div>
+                            </div>
+                        </div>
+                        <div style="border-top:var(--border);padding:11px 14px;display:flex;gap:9px">
+                            <div
+                                style="border:var(--border);flex:1;padding:9px 12px;font-family:var(--font-mono);font-size:11px;color:#aaa;background:#fafafa">
+                                Ask a question about your sources…</div>
+                            <div
+                                style="background:var(--yellow);border:var(--border);box-shadow:var(--shadow);padding:9px 16px;font-family:var(--font-mono);font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13" />
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                                </svg> SEND</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pv-team" class="panel">
+                    <div style="max-width:700px;margin:0 auto;display:grid;grid-template-columns:200px 1fr;gap:16px">
+                        <div style="border:var(--border);background:#fff;box-shadow:var(--shadow);padding:18px">
+                            <div
+                                style="font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;padding-bottom:9px;border-bottom:var(--border)">
+                                INVITE RESEARCHER</div>
+                            <div
+                                style="font-family:var(--font-mono);font-size:9px;color:#888;margin-bottom:5px;letter-spacing:.06em">
+                                SEARCH PROFILE</div>
+                            <div
+                                style="border:var(--border);padding:7px 10px;font-family:var(--font-mono);font-size:11px;color:#aaa;margin-bottom:10px;display:flex;align-items:center;gap:6px;background:#fafafa">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                </svg> e.g. Adrian</div>
+                            <div
+                                style="font-family:var(--font-mono);font-size:9px;color:#888;margin-bottom:5px;letter-spacing:.06em">
+                                ACCESS LEVEL</div>
+                            <div
+                                style="border:var(--border);padding:7px 10px;font-family:var(--font-mono);font-size:11px;background:#fafafa;display:flex;justify-content:space-between">
+                                Contributor <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9" />
+                                </svg></div>
+                        </div>
+                        <div style="border:var(--border);background:#fff;box-shadow:var(--shadow);padding:18px">
+                            <div
+                                style="font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;padding-bottom:9px;border-bottom:var(--border)">
+                                ASSIGNED PERSONNEL</div>
+                            <div style="display:flex;flex-direction:column;gap:2px">
+                                <div
+                                    style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eee">
+                                    <div style="display:flex;align-items:center;gap:9px">
+                                        <div
+                                            style="width:30px;height:30px;border:var(--border);background:#e8e5de;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                                <circle cx="12" cy="7" r="4" />
+                                            </svg></div>
+                                        <div>
+                                            <div style="font-family:var(--font-mono);font-size:10px;font-weight:700">
+                                                SEER IJJ</div>
+                                            <div style="font-size:10px;color:#888">seerijj@gmail.com</div>
+                                        </div>
+                                    </div>
+                                    <span class="role-badge owner" style="font-size:9px">OWNER</span>
+                                </div>
+                                <div
+                                    style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eee">
+                                    <div style="display:flex;align-items:center;gap:9px">
+                                        <div
+                                            style="width:30px;height:30px;border:var(--border);background:#cde;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                                <circle cx="12" cy="7" r="4" />
+                                            </svg></div>
+                                        <div>
+                                            <div style="font-family:var(--font-mono);font-size:10px;font-weight:700">
+                                                PROF. CARTER</div>
+                                            <div style="font-size:10px;color:#888">a.carter@citadel.edu</div>
+                                        </div>
+                                    </div>
+                                    <span class="role-badge contributor" style="font-size:9px">CONTRIBUTOR</span>
+                                </div>
+                                <div
+                                    style="display:flex;align-items:center;justify-content:space-between;padding:9px 0">
+                                    <div style="display:flex;align-items:center;gap:9px">
+                                        <div
+                                            style="width:30px;height:30px;border:var(--border);background:#ecd;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                                <circle cx="12" cy="7" r="4" />
+                                            </svg></div>
+                                        <div>
+                                            <div style="font-family:var(--font-mono);font-size:10px;font-weight:700">DR.
+                                                ROSTOVA</div>
+                                            <div style="font-size:10px;color:#888">e.rostova@research.org</div>
+                                        </div>
+                                    </div>
+                                    <span class="role-badge viewer" style="font-size:9px">VIEWER</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ── PRICING ── -->
+    <section class="pricing" id="pricing">
+        <div class="section-label reveal">Pricing</div>
+        <h2 class="section-title reveal" style="animation-delay:.08s">Simple. Honest. No tricks.</h2>
+        <div class="pricing-grid reveal" style="animation-delay:.18s">
+            <div class="plan">
+                <div class="plan-name">Free</div>
+                <div class="plan-price">$0 <span>/ month</span></div>
+                <div class="plan-desc">For individuals and small teams getting started with collaborative research.
+                </div>
+                <ul class="plan-features">
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> 1 Vault</li>
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Up to 3 members</li>
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> PDF + web article sources</li>
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Basic AI Q&amp;A (limited)</li>
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Annotations &amp; team chat</li>
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#333"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg> Multiple vaults</li>
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#333"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg> Unlimited AI queries</li>
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#333"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg> Advanced audit logs</li>
+                </ul>
+                <a href="#" class="plan-btn">Get Started Free</a>
+            </div>
+            <div class="plan">
+                <div class="plan-popular">MOST POPULAR</div>
+                <div class="plan-name">Pro</div>
+                <div class="plan-price">$12 <span>/ month</span></div>
+                <div class="plan-desc">For serious research teams who need unlimited vaults and full AI capabilities.
+                </div>
+                <ul class="plan-features">
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Unlimited Vaults</li>
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Unlimited members</li>
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> PDF + web article sources</li>
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Unlimited AI Q&amp;A queries</li>
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Annotations &amp; team chat</li>
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Full audit log access</li>
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> AI insight extraction</li>
+                    <li><svg class="pi" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg> Priority support</li>
+                </ul>
+                <a href="#" class="plan-btn pb-pro">Upgrade to Pro →</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── CTA ── -->
+    <section class="cta-strip reveal">
+        <h2>Ready to build your<br><span>research citadel?</span></h2>
+        <div class="cta-right">
+            <a href="#" class="btn-black">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 3h6v6" />
+                    <path d="M10 14L21 3" />
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                </svg>
+                Start for Free
+            </a>
+            <div class="cta-note">No credit card required. Free plan forever.</div>
+        </div>
+    </section>
+
+    <!-- ── FOOTER ── -->
+    <footer>
+        <div class="footer-top">
+            <div>
+                <div class="footer-brand-name">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    RESEARCH CITADEL
+                </div>
+                <div class="footer-brand-desc">A collaborative workspace for teams who do real research — vaults,
+                    citations, AI Q&amp;A, and live annotations in one place.</div>
+            </div>
+            <div>
+                <div class="footer-col-title">Platform</div>
+                <ul class="footer-links">
+                    <li><a href="#">Dashboard</a></li>
+                    <li><a href="#">Vaults</a></li>
+                    <li><a href="#">Citations</a></li>
+                    <li><a href="#">AI Q&amp;A</a></li>
+                    <li><a href="#">Annotations</a></li>
+                </ul>
+            </div>
+            <div>
+                <div class="footer-col-title">Company</div>
+                <ul class="footer-links">
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Changelog</a></li>
+                    <li><a href="#">Pricing</a></li>
+                    <li><a href="#">Blog</a></li>
+                </ul>
+            </div>
+            <div>
+                <div class="footer-col-title">Legal</div>
+                <ul class="footer-links">
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                    <li><a href="#">Cookie Policy</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div class="footer-copy">© 2025 RESEARCH CITADEL — ALL RIGHTS RESERVED</div>
+            <div class="footer-badges"><span class="f-badge">FREE TIER</span><span class="f-badge">PRO TIER</span></div>
+        </div>
+    </footer>
+
+    <script>
+        /* ── Tab switcher ── */
+        var pvUrls = {
+            'pv-dash': 'https://app.researchcitadel.com/vault/ai-foundations',
+            'pv-cites': 'https://app.researchcitadel.com/vault/ai-foundations/citations',
+            'pv-ai': 'https://app.researchcitadel.com/vault/ai-foundations/qa',
+            'pv-team': 'https://app.researchcitadel.com/vault/ai-foundations/researchers'
+        };
+        function switchPanel(el, id) {
+            document.querySelectorAll('.ptab').forEach(function (t) { t.classList.remove('active'); });
+            document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+            el.classList.add('active');
+            var p = document.getElementById(id);
+            if (p) p.classList.add('active');
+            var u = document.getElementById('pv-url');
+            if (u) u.textContent = pvUrls[id] || '';
+        }
+
+        /* ── Mobile menu ── */
+        function toggleMenu(btn) {
+            var menu = document.getElementById('nav-mobile');
+            var open = menu.classList.toggle('open');
+            var spans = btn.querySelectorAll('span');
+            if (open) {
+                spans[0].style.transform = 'translateY(7.5px) rotate(45deg)';
+                spans[1].style.opacity = '0';
+                spans[2].style.transform = 'translateY(-7.5px) rotate(-45deg)';
+            } else {
+                spans[0].style.transform = ''; spans[1].style.opacity = ''; spans[2].style.transform = '';
+            }
+        }
+        function closeMenu() {
+            var menu = document.getElementById('nav-mobile');
+            menu.classList.remove('open');
+            var btn = document.querySelector('.nav-hamburger');
+            if (btn) { var s = btn.querySelectorAll('span'); s[0].style.transform = ''; s[1].style.opacity = ''; s[2].style.transform = ''; }
+        }
+
+        /* ── Typewriter ── */
+        (function () {
+            var text = "Based on Vaswani et al. (2017), the Transformer's core innovation is self-attention — replacing recurrence entirely, enabling parallel computation and capturing long-range dependencies directly.";
+            var el = document.getElementById('ai-typewriter');
+            var dots = document.getElementById('typing-dots');
+            var i = 0;
+            if (!el) return;
+            setTimeout(function () {
+                if (dots) dots.style.display = 'none';
+                (function type() { if (i < text.length) { el.textContent = text.slice(0, ++i); setTimeout(type, 18 + Math.random() * 10); } })();
+            }, 1400);
+        })();
+
+        /* ── Nav scroll highlight ── */
+        (function () {
+            var ids = ['process', 'collab', 'features', 'pricing'];
+            var links = {};
+            document.querySelectorAll('.nav-links a, .nav-mobile a').forEach(function (a) {
+                var m = (a.getAttribute('href') || '').match(/#(\w+)/);
+                if (m) links[m[1]] = a;
+            });
+            window.addEventListener('scroll', function () {
+                var y = window.scrollY + 120;
+                ids.forEach(function (id) {
+                    var s = document.getElementById(id);
+                    if (!s) return;
+                    if (y >= s.offsetTop && y < s.offsetTop + s.offsetHeight) {
+                        Object.values(links).forEach(function (a) { a.style.color = ''; });
+                        if (links[id]) links[id].style.color = 'var(--yellow)';
+                    }
+                });
+            }, { passive: true });
+        })();
+    </script>
+</body>
+
+</html>

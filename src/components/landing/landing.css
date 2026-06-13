@@ -1,0 +1,75 @@
+.landing-page {
+  --lp-yellow: #ffd000;
+  --lp-black: #0a0a0a;
+  --lp-cream: #f5f2eb;
+  --lp-green: #00c48c;
+  --lp-teal: #00b8d9;
+  background: var(--lp-cream);
+  color: var(--lp-black);
+  overflow-x: hidden;
+}
+
+.landing-page .lp-border {
+  border: 2.5px solid var(--lp-black);
+}
+
+.landing-page .lp-shadow {
+  box-shadow: 4px 4px 0 var(--lp-black);
+}
+
+.landing-page .lp-shadow-lg {
+  box-shadow: 6px 6px 0 var(--lp-black);
+}
+
+@keyframes lp-ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.lp-ticker-track {
+  animation: lp-ticker 32s linear infinite;
+}
+
+@keyframes lp-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.75); }
+}
+
+.lp-live-dot {
+  animation: lp-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes lp-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.lp-cursor-blink {
+  animation: lp-blink 0.8s step-end infinite;
+}
+
+@keyframes lp-dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-5px); }
+}
+
+.lp-typing-dot:nth-child(1) { animation: lp-dot-bounce 1.2s ease infinite; }
+.lp-typing-dot:nth-child(2) { animation: lp-dot-bounce 1.2s ease 0.15s infinite; }
+.lp-typing-dot:nth-child(3) { animation: lp-dot-bounce 1.2s ease 0.3s infinite; }
+
+.lp-hero-grid {
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(10, 10, 10, 0.05) 39px, rgba(10, 10, 10, 0.05) 40px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(10, 10, 10, 0.05) 39px, rgba(10, 10, 10, 0.05) 40px);
+}
+
+.lp-process-step-active {
+  background: var(--lp-yellow) !important;
+  transform: translateX(4px);
+}
+
+.lp-preview-tab-active {
+  background: var(--lp-yellow);
+  color: var(--lp-black);
+  font-weight: 800;
+}
