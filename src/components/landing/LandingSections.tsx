@@ -27,21 +27,23 @@ export function LandingProcess() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-5 flex flex-col gap-2">
+          <div className="lg:col-span-5 flex flex-col gap-2.5">
             {PROCESS_STEPS.map((s, i) => (
               <button
                 key={s.num}
                 type="button"
                 onClick={() => setActiveStep(i)}
-                className={`text-left lp-border p-4 cursor-pointer transition-all duration-200 ${
-                  activeStep === i ? "lp-process-step-active lp-shadow" : "bg-white hover:bg-stone-50"
-                } ${s.highlight ? "border-[#ffd000]" : ""}`}
+                className={`text-left border-4 border-black p-4 cursor-pointer transition-all rounded-sm ${
+                  activeStep === i
+                    ? "bg-yellow-300 shadow-[4px_4px_0px_#000] -translate-y-0.5"
+                    : "bg-white shadow-[3px_3px_0px_#000] hover:shadow-[4px_4px_0px_#000] hover:-translate-y-0.5"
+                }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs font-bold text-[#888]">{s.num}</span>
-                  <span className="font-mono text-[9px] font-bold tracking-widest text-[#888]">{s.tag}</span>
+                <div className="flex items-center gap-2.5">
+                  <span className={`font-mono text-xs font-black ${activeStep === i ? "text-black" : "text-stone-400"}`}>{s.num}</span>
+                  <span className={`font-mono text-[9px] font-black tracking-widest uppercase ${activeStep === i ? "text-black/70" : "text-stone-400"}`}>{s.tag}</span>
                 </div>
-                <div className="font-display font-bold text-sm mt-1">{s.title}</div>
+                <div className="font-display font-black text-sm mt-1.5 uppercase tracking-tight">{s.title}</div>
               </button>
             ))}
           </div>
@@ -54,31 +56,63 @@ export function LandingProcess() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.2 }}
-                className="bg-white lp-border lp-shadow-lg p-8 h-full min-h-[280px]"
+                className="bg-white border-4 border-black rounded-sm shadow-[6px_6px_0px_#000] overflow-hidden h-full min-h-[280px] flex flex-col"
               >
-                <span className="font-mono text-[10px] font-bold tracking-widest text-[#888]">{step.tag}</span>
-                <h3 className="font-display font-extrabold text-2xl mt-2 mb-4">{step.title}</h3>
-                <p className="text-[15px] text-[#555] leading-relaxed mb-6">{step.desc}</p>
-                <div className="flex flex-wrap gap-2">
-                  {step.chips.map((chip) => (
-                    <span key={chip} className="font-mono text-[10px] font-bold px-2.5 py-1 bg-[#f5f2eb] lp-border border-[1.5px]">
-                      {chip}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-8 pt-4 border-t lp-border border-x-0 border-b-0 flex items-center justify-between">
-                  <span className="font-mono text-[10px] text-[#888]">
-                    Step {activeStep + 1} of {PROCESS_STEPS.length}
+                {/* Header bar */}
+                <div className="bg-yellow-300 border-b-4 border-black px-5 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 bg-black rounded-none border-2 border-black" />
+                    <span className="font-mono text-[9px] font-black tracking-[0.2em] uppercase text-black">{step.tag}</span>
+                  </div>
+                  <span className="text-[8px] font-mono font-black bg-white border-2 border-black px-2 py-0.5 shadow-[1.5px_1.5px_0px_#000] uppercase tracking-wider">
+                    Step {step.num}
                   </span>
-                  {activeStep < PROCESS_STEPS.length - 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveStep((s) => s + 1)}
-                      className="font-mono text-[11px] font-bold text-black bg-[#ffd000] px-3 py-1.5 lp-border cursor-pointer hover:lp-shadow transition-all"
-                    >
-                      Next step →
-                    </button>
-                  )}
+                </div>
+
+                {/* Content body */}
+                <div className="p-6 flex-1 flex flex-col">
+                  <h3 className="font-display font-black text-xl md:text-2xl uppercase tracking-tight text-black">{step.title}</h3>
+                  <p className="text-[13px] text-stone-600 leading-relaxed mt-3 mb-5 font-sans font-medium">{step.desc}</p>
+
+                  {/* Neobrutalist chips */}
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {step.chips.map((chip) => (
+                      <span
+                        key={chip}
+                        className="font-mono text-[9px] font-black px-2.5 py-1 bg-stone-50 border-2 border-black shadow-[2px_2px_0px_#000] uppercase tracking-wider"
+                      >
+                        {chip}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Footer navigation */}
+                  <div className="mt-auto pt-4 border-t-2 border-dashed border-stone-200 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      {PROCESS_STEPS.map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setActiveStep(i)}
+                          className={`w-3 h-3 border-2 border-black cursor-pointer transition-all ${
+                            i === activeStep ? "bg-yellow-300 shadow-[1px_1px_0px_#000]" : "bg-stone-100 hover:bg-stone-200"
+                          }`}
+                        />
+                      ))}
+                      <span className="font-mono text-[9px] text-stone-500 font-bold ml-2">
+                        {activeStep + 1}/{PROCESS_STEPS.length}
+                      </span>
+                    </div>
+                    {activeStep < PROCESS_STEPS.length - 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveStep((s) => s + 1)}
+                        className="font-display font-black text-[10px] text-black bg-yellow-300 px-3.5 py-1.5 border-2 border-black shadow-[2.5px_2.5px_0px_#000] cursor-pointer hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_#000] active:translate-x-0 active:translate-y-0 transition-all uppercase tracking-wider"
+                      >
+                        Next step →
+                      </button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             </AnimatePresence>
