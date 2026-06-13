@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Plus, Search, Globe, Lock, FolderPlus, Sparkles,
   LineChart, BookOpenCheck, LockKeyhole, BellOff, ChevronRight,
-  History, Bell, ShieldCheck, Fingerprint, Eye, Cpu, VolumeX,
+  History, Bell, ShieldCheck, Fingerprint, VolumeX,
   Trash2, Check, Crown, Edit3, Menu, Settings,
   UserPlus, Send, Loader2, X
 } from "lucide-react";
@@ -60,14 +60,11 @@ export default function DashboardClient() {
   const [activeSettingsSubTab, setActiveSettingsSubTab] = useState<"general" | "guidelines" | "idcard" | "admin">("general");
   const [settingsSidebarCollapsed, setSettingsSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [simulateCollaborators, setSimulateCollaborators] = useState(true);
 
   const [inviteSearch, setInviteSearch] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [inviteRole, setInviteRole] = useState<"CONTRIBUTOR" | "VIEWER">("CONTRIBUTOR");
   const [collaborativeLogs, setCollaborativeLogs] = useState<string[]>([]);
-  const [expandAnnotationsByDefault, setExpandAnnotationsByDefault] = useState(false);
-  const [notifyOnNewAnnotations, setNotifyOnNewAnnotations] = useState(true);
 
   const truncateText = (str: string, maxLen: number = 22) => {
     if (!str) return "";
@@ -509,12 +506,6 @@ export default function DashboardClient() {
                         mutedVaults={mutedVaults}
                         activeSettingsSubTab={activeSettingsSubTab}
                         setActiveSettingsSubTab={setActiveSettingsSubTab}
-                        simulateCollaborators={simulateCollaborators}
-                        setSimulateCollaborators={setSimulateCollaborators}
-                        expandAnnotationsByDefault={expandAnnotationsByDefault}
-                        setExpandAnnotationsByDefault={setExpandAnnotationsByDefault}
-                        notifyOnNewAnnotations={notifyOnNewAnnotations}
-                        setNotifyOnNewAnnotations={setNotifyOnNewAnnotations}
                         settingsSidebarCollapsed={settingsSidebarCollapsed}
                         setSettingsSidebarCollapsed={setSettingsSidebarCollapsed}
                         mobileSidebarOpen={mobileSidebarOpen}
@@ -1177,9 +1168,6 @@ function VaultSettingsTab({
   settingsSuccessMsg, settingsErrorMsg,
   handleMuteVaultToggle, mutedVaults,
   activeSettingsSubTab, setActiveSettingsSubTab,
-  simulateCollaborators, setSimulateCollaborators,
-  expandAnnotationsByDefault, setExpandAnnotationsByDefault,
-  notifyOnNewAnnotations, setNotifyOnNewAnnotations,
   onNavigateToPassport,
   settingsSidebarCollapsed, setSettingsSidebarCollapsed,
   mobileSidebarOpen, setMobileSidebarOpen,
@@ -1346,87 +1334,26 @@ function VaultSettingsTab({
               </div>
 
               <div className="space-y-4 font-sans text-xs text-left">
-                {/* Mute Vault */}
                 <div className="flex items-center justify-between p-3.5 bg-stone-50 border-2 border-neo-dark rounded shadow-[2px_2px_0px_#000] gap-4">
-                  <div className="space-y-0.5 max-w-[70%]">
+                  <div className="space-y-0.5 max-w-[75%]">
                     <div className="font-black text-neo-dark uppercase flex items-center gap-1.5 font-mono">
                       {mutedVaults[activeVault.id] ? <VolumeX className="w-4 h-4 text-amber-600 stroke-[2.5]" /> : <Bell className="w-4 h-4 text-emerald-600 stroke-[2.5]" />}
-                      <span>Mute Vault Notifications</span>
+                      <span>Mute This Vault</span>
                     </div>
-                    <p className="text-[10px] text-stone-500 font-sans font-medium">Silence collaborator audio pings, dynamic indicators, and mock real-time events.</p>
+                    <p className="text-[10px] text-stone-500 font-sans font-medium leading-relaxed">
+                      Pause notifications for this vault only — invitations, member activity, and vault updates will not alert you while muted.
+                    </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleMuteVaultToggle(activeVault.id)}
                     className={`py-1.5 px-4 border-2 border-neo-dark font-display font-black text-[10px] uppercase rounded-xs cursor-pointer transition-all shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 shrink-0 ${
-                      mutedVaults[activeVault.id] ? "bg-stone-200 text-stone-600 hover:bg-stone-300" : "bg-emerald-400 text-neo-dark"
+                      mutedVaults[activeVault.id] ? "bg-emerald-400 text-neo-dark" : "bg-stone-200 text-stone-600 hover:bg-stone-300"
                     }`}
                   >
-                    {mutedVaults[activeVault.id] ? "Inactive" : "Active"}
+                    {mutedVaults[activeVault.id] ? "On" : "Off"}
                   </button>
                 </div>
-
-                {/* Expand Annotations */}
-                <div className="flex items-center justify-between p-3.5 bg-stone-50 border-2 border-neo-dark rounded shadow-[2px_2px_0px_#000] gap-4">
-                  <div className="space-y-0.5 max-w-[70%]">
-                    <div className="font-black text-neo-dark uppercase flex items-center gap-1.5 font-mono">
-                      <Eye className="w-4 h-4 text-stone-700 stroke-[2.5]" />
-                      <span>Expand Annotations List</span>
-                    </div>
-                    <p className="text-[10px] text-stone-500 font-sans font-medium">Auto-expand all custom detailed citation logs on your layout entries by default.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setExpandAnnotationsByDefault(!expandAnnotationsByDefault)}
-                    className={`py-1.5 px-4 border-2 border-neo-dark font-display font-black text-[10px] uppercase rounded-xs cursor-pointer transition-all shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 shrink-0 ${
-                      expandAnnotationsByDefault ? "bg-emerald-400 text-neo-dark" : "bg-stone-200 text-stone-600 hover:bg-stone-300"
-                    }`}
-                  >
-                    {expandAnnotationsByDefault ? "Active" : "Inactive"}
-                  </button>
-                </div>
-
-                {/* Activity Pings */}
-                <div className="flex items-center justify-between p-3.5 bg-stone-50 border-2 border-neo-dark rounded shadow-[2px_2px_0px_#000] gap-4">
-                  <div className="space-y-0.5 max-w-[70%]">
-                    <div className="font-black text-neo-dark uppercase flex items-center gap-1.5 font-mono">
-                      <Sparkles className="w-4 h-4 text-teal-600 stroke-[2.5]" />
-                      <span>Activity Highlight Pings</span>
-                    </div>
-                    <p className="text-[10px] text-stone-500 font-sans font-medium">Toggle subtle visual alert indicators in the page workspace when peer updates occur.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setNotifyOnNewAnnotations(!notifyOnNewAnnotations)}
-                    className={`py-1.5 px-4 border-2 border-neo-dark font-display font-black text-[10px] uppercase rounded-xs cursor-pointer transition-all shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 shrink-0 ${
-                      notifyOnNewAnnotations ? "bg-emerald-400 text-neo-dark" : "bg-stone-200 text-stone-600 hover:bg-stone-300"
-                    }`}
-                  >
-                    {notifyOnNewAnnotations ? "Active" : "Inactive"}
-                  </button>
-                </div>
-
-                {/* Simulate Peer Conflict */}
-                {(activeVault.myRole === "OWNER" || activeVault.myRole === "CONTRIBUTOR") && (
-                  <div className="flex items-center justify-between p-3.5 bg-stone-50 border-2 border-neo-dark rounded shadow-[2px_2px_0px_#000] gap-4">
-                    <div className="space-y-0.5 max-w-[70%]">
-                      <div className="font-black text-neo-dark uppercase flex items-center gap-1.5 font-mono">
-                        <Cpu className="w-4 h-4 text-purple-600 stroke-[2.5]" />
-                        <span>Simulation Peer Conflict</span>
-                      </div>
-                      <p className="text-[10px] text-stone-500 font-sans font-medium">Generate dynamic automated editing overlays and simulate collaboration conflicts.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setSimulateCollaborators(!simulateCollaborators)}
-                      className={`py-1.5 px-4 border-2 border-neo-dark font-display font-black text-[10px] uppercase rounded-xs cursor-pointer transition-all shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 shrink-0 ${
-                        simulateCollaborators ? "bg-emerald-400 text-neo-dark" : "bg-stone-200 text-stone-600 hover:bg-stone-300"
-                      }`}
-                    >
-                      {simulateCollaborators ? "Active" : "Inactive"}
-                    </button>
-                  </div>
-                )}
               </div>
 
               {/* Exit / Owner restriction */}
@@ -1456,8 +1383,8 @@ function VaultSettingsTab({
                   <div className="p-4 bg-amber-50 border-2 border-neo-dark rounded-sm flex items-start gap-3 shadow-[2.5px_2.5px_0px_#000]">
                     <LockKeyhole className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 stroke-[2.5]" />
                     <div className="space-y-1">
-                      <h4 className="font-display font-black text-xs text-amber-950 uppercase tracking-wide">Vault Owner-Admin Restriction</h4>
-                      <p className="text-[11px] text-stone-600 font-sans font-semibold leading-relaxed">You cannot exit your own ledger workspace. Use the "Dismantle Vault" option under the "Admin Configuration" tab to permanently deactivate this research node.</p>
+                      <h4 className="font-display font-black text-xs text-amber-950 uppercase tracking-wide">Owner accounts cannot leave</h4>
+                      <p className="text-[11px] text-stone-600 font-sans font-semibold leading-relaxed">As the vault owner, you cannot exit this vault. To remove it permanently, use Delete Vault in the Admin tab.</p>
                     </div>
                   </div>
                 )}

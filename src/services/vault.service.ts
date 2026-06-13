@@ -24,6 +24,14 @@ export interface AddMemberPayload {
   role: "CONTRIBUTOR" | "VIEWER";
 }
 
+export interface VaultPreferences {
+  muted: boolean;
+}
+
+export interface UpdateVaultPreferencesPayload {
+  muted?: boolean;
+}
+
 export interface VaultMember {
   id: string;
   role: "OWNER" | "CONTRIBUTOR" | "VIEWER";
@@ -116,6 +124,16 @@ const vaultService = {
   /** Fetch aggregate stats for a vault. */
   getStats(vaultId: string) {
     return get<unknown>(`/vault/${vaultId}/stats`);
+  },
+
+  /** Get the current user's preferences for a vault. */
+  getPreferences(vaultId: string) {
+    return get<VaultPreferences>(`/vault/${vaultId}/preferences`);
+  },
+
+  /** Update the current user's preferences for a vault. */
+  updatePreferences(vaultId: string, payload: UpdateVaultPreferencesPayload) {
+    return put<VaultPreferences>(`/vault/${vaultId}/preferences`, payload);
   },
 
   /** Ask a question across all (or selected) sources in a vault. */

@@ -39,6 +39,14 @@ function buildHeatmap(
   return cells;
 }
 
+function mutedVaultsFromList(vaultList: Vault[]): Record<string, boolean> {
+  const map: Record<string, boolean> = {};
+  for (const vault of vaultList) {
+    if (vault.preferences?.muted) map[vault.id] = true;
+  }
+  return map;
+}
+
 // ── Context interface ──────────────────────────────────────────────────────────
 
 interface AppContextValue {
@@ -53,7 +61,7 @@ interface AppContextValue {
   vaults: Vault[];
   setVaults: React.Dispatch<React.SetStateAction<Vault[]>>;
   activeVault: Vault | null;
-  setActiveVault: (v: Vault | null) => void;
+  setActiveVault: React.Dispatch<React.SetStateAction<Vault | null>>;
   loadVaultList: (idToActivate?: string) => Promise<void>;
   loadVaultDetail: (id: string) => Promise<void>;
 
@@ -93,7 +101,7 @@ interface AppContextValue {
   vaultSearchQuery: string;
   setVaultSearchQuery: (v: string) => void;
   mutedVaults: Record<string, boolean>;
-  handleMuteVaultToggle: (vaultId: string) => void;
+  handleMuteVaultToggle: (vaultId: string) => Promise<void>;
 
   // Profile avatar
   computedProfileAvatar: string;
@@ -151,15 +159,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ── UI state ───────────────────────────────────────────────────────────────
   const [vaultSearchQuery, setVaultSearchQuery] = useState("");
-  const [mutedVaults, setMutedVaults] = useState<Record<string, boolean>>(() => {
-    if (typeof window === "undefined") return {};
-    try {
-      const saved = localStorage.getItem("mutedVaults");
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
+  const [mutedVaults, setMutedVaults] = useState<Record<string, boolean>>({});
 
   // ── Avatar state ───────────────────────────────────────────────────────────
   const [profileAvatarType, setProfileAvatarType] = useState<"vector" | "presets" | "upload">("presets");
@@ -321,6 +321,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!res.success) return;
 
       setVaults(res.data);
+      setMutedVaults(mutedVaultsFromList(res.data));
 
       const targetId =
         idToActivate ?? activeVault?.id ?? res.data[0]?.id;
@@ -346,7 +347,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         sourceService.listSources(id),
       ]);
 
-      if (vaultRes.success) setActiveVault(vaultRes.data);
+      if (vaultRes.success) {
+        setActiveVault(vaultRes.data);
+        setMutedVaults((prev) => ({
+          ...prev,
+          [id]: vaultRes.data.preferences?.muted ?? false,
+        }));
+      }
       setSources([]);
       if (srcRes.success) setSources(srcRes.data.sources);
 
@@ -358,16 +365,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ── UI helpers ─────────────────────────────────────────────────────────────
 
-  const handleMuteVaultToggle = (vaultId: string) => {
-    setMutedVaults((prev) => {
-      const updated = { ...prev, [vaultId]: !prev[vaultId] };
-      try {
-        localStorage.setItem("mutedVaults", JSON.stringify(updated));
-      } catch {
-        /* ignore */
-      }
-      return updated;
-    });
+  const handleMuteVaultToggle = async (vaultId: string) => {
+    const nextMuted = !(mutedVaults[vaultId] ?? false);
+
+    setMutedVaults((prev) => ({ ...prev, [vaultId]: nextMuted }));
+    setVaults((prev) =>
+      prev.map((v) =>
+        v.id === vaultId ? { ...v, preferences: { muted: nextMuted } } : v,
+      ),
+    );
+    setActiveVault((prev) =>
+      prev?.id === vaultId ? { ...prev, preferences: { muted: nextMuted } } : prev,
+    );
+
+    try {
+      const res = await vaultService.updatePreferences(vaultId, { muted: nextMuted });
+      if (!res.success) throw new Error(res.message);
+    } catch (err) {
+      console.error("[AppContext] handleMuteVaultToggle failed", err);
+      setMutedVaults((prev) => ({ ...prev, [vaultId]: !nextMuted }));
+      setVaults((prev) =>
+        prev.map((v) =>
+          v.id === vaultId ? { ...v, preferences: { muted: !nextMuted } } : v,
+        ),
+      );
+      setActiveVault((prev) =>
+        prev?.id === vaultId ? { ...prev, preferences: { muted: !nextMuted } } : prev,
+      );
+    }
   };
 
   // ── Context value ──────────────────────────────────────────────────────────

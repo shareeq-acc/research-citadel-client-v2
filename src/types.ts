@@ -37,6 +37,10 @@ export interface Notification {
   createdAt: string;
 }
 
+export interface VaultPreferences {
+  muted: boolean;
+}
+
 export interface Vault {
   id: string;
   name: string;
@@ -44,6 +48,7 @@ export interface Vault {
   privacy: 'PRIVATE' | 'PUBLIC';
   ownerId: string;
   myRole?: 'OWNER' | 'CONTRIBUTOR' | 'VIEWER';
+  preferences?: VaultPreferences;
   createdAt: string;
   _count?: {
     members: number;
