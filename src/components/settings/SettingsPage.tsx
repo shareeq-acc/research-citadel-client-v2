@@ -13,12 +13,15 @@ interface SettingsPageProps {
   setActiveSettingsTab: (tab: "profile" | "alerts") => void;
   profileName: string;
   setProfileName: (name: string) => void;
+  profileMotto: string;
+  setProfileMotto: (motto: string) => void;
   profileAvatarType: "presets" | "upload" | "vector";
   setProfileAvatarType: (type: "presets" | "upload" | "vector") => void;
   profilePresetAvatar: string;
   setProfilePresetAvatar: (v: string) => void;
   profileUploadedAvatar: string;
   setProfileUploadedAvatar: (v: string) => void;
+  onClearUploadedAvatar: () => void;
   profileAvatarGender: string;
   setProfileAvatarGender: (v: string) => void;
   profileAvatarHair: string;
@@ -49,7 +52,10 @@ interface SettingsPageProps {
   profileLoader: boolean;
   handleSaveProfile: (e: React.FormEvent) => void;
   handleUploadImageFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onDropAvatarFile: (file: File) => void;
   handleNavigateScreen: (screen: string) => void;
+  errMessage: string;
+  okMessage: string;
   setErrMessage: (msg: string) => void;
   setOkMessage: (msg: string) => void;
 }
@@ -60,12 +66,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   setActiveSettingsTab,
   profileName,
   setProfileName,
+  profileMotto,
+  setProfileMotto,
   profileAvatarType,
   setProfileAvatarType,
   profilePresetAvatar,
   setProfilePresetAvatar,
   profileUploadedAvatar,
   setProfileUploadedAvatar,
+  onClearUploadedAvatar,
   profileAvatarGender,
   setProfileAvatarGender,
   profileAvatarHair,
@@ -86,7 +95,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   profileLoader,
   handleSaveProfile,
   handleUploadImageFile,
+  onDropAvatarFile,
   handleNavigateScreen,
+  errMessage,
+  okMessage,
   setErrMessage,
   setOkMessage,
 }) => {
@@ -137,6 +149,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
         {/* Config Content */}
         <div className="flex-1 min-w-0 bg-stone-50 p-4 border-2 border-neo-dark rounded">
+          {(errMessage || okMessage) && (
+            <div
+              className={`mb-4 px-3 py-2 text-xs font-mono font-bold border-2 border-neo-dark rounded ${
+                errMessage ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"
+              }`}
+            >
+              {errMessage || okMessage}
+            </div>
+          )}
           {activeSettingsTab === "profile" ? (
             <form onSubmit={handleSaveProfile} className="space-y-5">
               <div>
@@ -150,18 +171,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   onDrop={(e) => {
                     e.preventDefault();
                     const file = e.dataTransfer.files?.[0];
-                    if (file) {
-                      if (file.size > 1200000) {
-                        setErrMessage("File exceeds 1.2MB limit for local memory index nodes.");
-                        return;
-                      }
-                      const reader = new FileReader();
-                      reader.onload = () => {
-                        setProfileUploadedAvatar(reader.result as string);
-                        setProfileAvatarType("upload");
-                      };
-                      reader.readAsDataURL(file);
-                    }
+                    if (file) onDropAvatarFile(file);
                   }}
                   className="flex flex-col sm:flex-row items-center gap-4 p-4 mb-4 bg-white border-2 border-neo-dark rounded shadow-[2px_2px_0px_rgba(0,0,0,0.15)] animate-fadeIn relative group select-none"
                 >
@@ -176,7 +186,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   <div className="text-left space-y-1 sm:max-w-xs md:max-w-md flex-1">
                     <span className="text-[9px] font-mono font-black text-stone-400 block uppercase leading-none tracking-wide">SIGNET DEPLOYMENT PREVIEW</span>
                     <div className="font-display font-black text-xs text-neo-dark">
-                      {profileAvatarType === 'vector' ? 'Cryptographic Custom Vector Archetype' : profileAvatarType === 'upload' ? 'Custom Upload Cryptographic Key' : computedProfileAvatar === '' ? 'Default Cryptographic Letter Signet' : 'Standard Scholar Preset'}
+                      {profileAvatarType === 'vector' ? 'Cryptographic Custom Vector Archetype' : profileAvatarType === 'upload' ? 'Custom Upload Cryptographic Key' : profilePresetAvatar ? 'Standard Scholar Preset' : 'Default Cryptographic Letter Signet'}
                     </div>
                     <p className="text-[10px] text-stone-400 font-mono leading-tight">
                       This signet represents your academic digital presence. Select elements from the unified roster below to instantly swap, or drag-and-drop a portrait photo here.
@@ -296,11 +306,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setProfileUploadedAvatar("");
-                              if (profileAvatarType === "upload") {
-                                setProfileAvatarType("presets");
-                                setProfilePresetAvatar("");
-                              }
+                              onClearUploadedAvatar();
                             }}
                             className="absolute -top-1 -right-1 bg-rose-500 border border-neo-dark text-white rounded-full w-3.5 h-3.5 flex items-center justify-center text-[8px] font-black hover:bg-rose-600 transition shadow-[0.5px_0.5px_0px_#000]"
                             title="Clear Image"
@@ -563,6 +569,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
               <div>
                 <label className="block text-xs font-bold font-mono text-stone-600 uppercase mb-1">
+                  Username Index
+                </label>
+                <div className="w-full neo-input bg-stone-100 text-stone-600 font-mono select-none cursor-not-allowed border-2 border-dashed border-stone-300">
+                  {currentUser?.username}
+                </div>
+                <span className="text-[9px] text-stone-400 font-mono mt-1 block">
+                  Username is permanent and cannot be changed after registration.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold font-mono text-stone-600 uppercase mb-1">
                   Call Name Index
                 </label>
                 <input
@@ -572,6 +590,22 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   onChange={(e) => setProfileName(e.target.value)}
                   className="w-full neo-input bg-white font-semibold"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold font-mono text-stone-600 uppercase mb-1">
+                  Research Motto / Mission
+                </label>
+                <input
+                  type="text"
+                  value={profileMotto}
+                  onChange={(e) => setProfileMotto(e.target.value)}
+                  placeholder="Grounded analysis, zero assumptions"
+                  className="w-full neo-input bg-white font-semibold"
+                />
+                <span className="text-[9px] text-stone-400 font-mono mt-1 block">
+                  A short phrase that captures your research ethos.
+                </span>
               </div>
 
               <div>

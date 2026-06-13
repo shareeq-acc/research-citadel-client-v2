@@ -13,3 +13,4 @@ export { default as annotationService } from "./annotation.service";
 export { default as chatService } from "./chat.service";
 export { default as invitationService } from "./invitation.service";
 export { default as notificationService } from "./notification.service";
+export { default as passportService } from "./passport.service";

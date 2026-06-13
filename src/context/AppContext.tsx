@@ -176,10 +176,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const computedProfileAvatar = useMemo(() => {
     if (profileAvatarType === "presets") {
-      return (
-        profilePresetAvatar ||
-        "https://api.dicebear.com/7.x/pixel-art/svg?seed=SeerIjj"
-      );
+      return profilePresetAvatar || "";
     }
     if (profileAvatarType === "upload") {
       return profileUploadedAvatar || "";
@@ -223,7 +220,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch {
         /* ignore malformed avatar string */
       }
-    } else if (avatarStr?.startsWith("data:image")) {
+    } else if (avatarStr?.startsWith("data:image") || avatarStr?.startsWith("http://") || avatarStr?.startsWith("https://")) {
       setProfileAvatarType("upload");
       setProfileUploadedAvatar(avatarStr);
     } else if (avatarStr) {
@@ -231,9 +228,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setProfilePresetAvatar(avatarStr);
     } else {
       setProfileAvatarType("presets");
-      setProfilePresetAvatar(
-        "https://api.dicebear.com/7.x/pixel-art/svg?seed=SeerIjj",
-      );
+      setProfilePresetAvatar("");
     }
   }, [currentUser?.id]);
 

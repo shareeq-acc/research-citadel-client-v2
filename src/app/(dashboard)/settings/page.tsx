@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { userService } from "@/services";
@@ -23,6 +23,8 @@ export default function SettingsRoute() {
   } = useApp();
 
   const [profileName, setProfileName] = useState(currentUser?.name || "");
+  const [profileMotto, setProfileMotto] = useState(currentUser?.motto || "");
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
   const [profileLoader, setProfileLoader] = useState(false);
   const [activeSettingsTab, setActiveSettingsTab] = useState<"profile" | "alerts">("profile");
   const [alertSettings, setAlertSettings] = useState({
@@ -34,10 +36,24 @@ export default function SettingsRoute() {
   const [savingAlerts, setSavingAlerts] = useState(false);
   const [errMessage, setErrMessage] = useState("");
   const [okMessage, setOkMessage] = useState("");
+  const uploadPreviewUrlRef = useRef<string | null>(null);
+
+  const revokeUploadPreview = () => {
+    if (uploadPreviewUrlRef.current) {
+      URL.revokeObjectURL(uploadPreviewUrlRef.current);
+      uploadPreviewUrlRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => revokeUploadPreview();
+  }, []);
 
   useEffect(() => {
     if (currentUser) {
       setProfileName(currentUser.name);
+      setProfileMotto(currentUser.motto || "");
+      setPendingAvatarFile(null);
     }
   }, [currentUser?.id]);
 
@@ -45,35 +61,74 @@ export default function SettingsRoute() {
     e.preventDefault();
     if (!profileName || !currentUser) return;
     setProfileLoader(true);
+    setErrMessage("");
     try {
-      const res = await userService.updateMe({ name: profileName, avatar: computedProfileAvatar });
+      let avatarValue: string | null = null;
+
+      if (profileAvatarType === "upload") {
+        if (pendingAvatarFile) {
+          const uploadRes = await userService.uploadAvatar(pendingAvatarFile);
+          if (!uploadRes.success || !uploadRes.data) {
+            setErrMessage(uploadRes.message || "Failed to upload avatar.");
+            return;
+          }
+          avatarValue = uploadRes.data.avatar;
+          setProfileUploadedAvatar(avatarValue || "");
+          setPendingAvatarFile(null);
+          revokeUploadPreview();
+        } else if (profileUploadedAvatar) {
+          avatarValue = profileUploadedAvatar;
+        }
+      } else if (profileAvatarType === "vector") {
+        avatarValue = computedProfileAvatar;
+      } else {
+        avatarValue = profilePresetAvatar || null;
+      }
+
+      const res = await userService.updateMe({
+        name: profileName,
+        motto: profileMotto,
+        avatar: avatarValue,
+      });
+
       if (res.success) {
-        setCurrentUser({ ...currentUser, name: profileName, avatar: computedProfileAvatar });
+        const updatedUser = res.data
+          ? { ...currentUser, ...res.data, name: profileName, motto: profileMotto, avatar: avatarValue }
+          : { ...currentUser, name: profileName, motto: profileMotto, avatar: avatarValue };
+        setCurrentUser(updatedUser);
         setOkMessage("Profile updated successfully.");
         setTimeout(() => setOkMessage(""), 3000);
       } else {
         setErrMessage(res.message || "Failed to update profile.");
       }
-    } catch (err: any) {
-      setErrMessage(err?.message || "Connection error while updating profile.");
+    } catch (err: unknown) {
+      const message = err && typeof err === "object" && "message" in err
+        ? String((err as { message: string }).message)
+        : "Connection error while updating profile.";
+      setErrMessage(message);
     } finally {
       setProfileLoader(false);
     }
   };
 
-  const handleUploadImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 1200000) {
-      setErrMessage("File exceeds 1.2MB limit.");
+  const handleUploadImageFile = (file: File) => {
+    if (file.size > 5_000_000) {
+      setErrMessage("File exceeds 5MB limit.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setProfileUploadedAvatar(reader.result as string);
-      setProfileAvatarType("upload");
-    };
-    reader.readAsDataURL(file);
+    revokeUploadPreview();
+    const previewUrl = URL.createObjectURL(file);
+    uploadPreviewUrlRef.current = previewUrl;
+    setPendingAvatarFile(file);
+    setProfileUploadedAvatar(previewUrl);
+    setProfileAvatarType("upload");
+    setErrMessage("");
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleUploadImageFile(file);
+    e.target.value = "";
   };
 
   if (!currentUser) return <SkeletonSettingsPage />;
@@ -85,14 +140,25 @@ export default function SettingsRoute() {
       setActiveSettingsTab={setActiveSettingsTab}
       profileName={profileName}
       setProfileName={setProfileName}
+      profileMotto={profileMotto}
+      setProfileMotto={setProfileMotto}
       profileAvatarType={profileAvatarType}
       setProfileAvatarType={setProfileAvatarType}
       profilePresetAvatar={profilePresetAvatar}
       setProfilePresetAvatar={setProfilePresetAvatar}
       profileUploadedAvatar={profileUploadedAvatar}
       setProfileUploadedAvatar={setProfileUploadedAvatar}
+      onClearUploadedAvatar={() => {
+        setPendingAvatarFile(null);
+        revokeUploadPreview();
+        setProfileUploadedAvatar("");
+        if (profileAvatarType === "upload") {
+          setProfileAvatarType("presets");
+          setProfilePresetAvatar("");
+        }
+      }}
       profileAvatarGender={profileAvatarGender}
-      setProfileAvatarGender={setProfileAvatarGender as (v: any) => void}
+      setProfileAvatarGender={setProfileAvatarGender as (v: string) => void}
       profileAvatarHair={profileAvatarHair}
       setProfileAvatarHair={setProfileAvatarHair}
       profileAvatarBg={profileAvatarBg}
@@ -102,7 +168,7 @@ export default function SettingsRoute() {
       profileAvatarColor={profileAvatarColor}
       setProfileAvatarColor={setProfileAvatarColor}
       profileAvatarEye={profileAvatarEye}
-      setProfileAvatarEye={setProfileAvatarEye as (v: any) => void}
+      setProfileAvatarEye={setProfileAvatarEye as (v: "sunglasses" | "glasses" | "cute" | "focus") => void}
       computedProfileAvatar={computedProfileAvatar}
       alertSettings={alertSettings}
       setAlertSettings={setAlertSettings}
@@ -110,10 +176,13 @@ export default function SettingsRoute() {
       setSavingAlerts={setSavingAlerts}
       profileLoader={profileLoader}
       handleSaveProfile={handleSaveProfile}
-      handleUploadImageFile={handleUploadImageFile}
+      handleUploadImageFile={handleFileInputChange}
+      onDropAvatarFile={handleUploadImageFile}
       handleNavigateScreen={(screen) => {
         if (screen === "dashboard") router.push("/dashboard");
       }}
+      errMessage={errMessage}
+      okMessage={okMessage}
       setErrMessage={setErrMessage}
       setOkMessage={setOkMessage}
     />

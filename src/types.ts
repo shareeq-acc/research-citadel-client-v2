@@ -4,6 +4,7 @@ export interface User {
   username: string;
   email: string;
   avatar: string | null;
+  motto?: string | null;
   isEmailVerified: boolean;
   loginProvider: 'EMAIL' | 'GOOGLE';
   createdAt: string;

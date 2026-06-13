@@ -2,14 +2,15 @@
  * User service — wraps /user endpoints.
  */
 
-import { del, get, post, put } from "@/lib/http-client";
+import httpClient, { get, put } from "@/lib/http-client";
 import type { User } from "@/types";
 
 // ── DTOs ──────────────────────────────────────────────────────────────────────
 
 export interface UpdateProfilePayload {
   name?: string;
-  avatar?: string;
+  avatar?: string | null;
+  motto?: string;
 }
 
 export interface UserSearchResult {
@@ -29,9 +30,23 @@ const userService = {
     return get<User>("/user/me");
   },
 
-  /** Update the current user's profile (name, avatar, etc.). */
+  /** Update the current user's profile (name, avatar, motto, etc.). */
   updateMe(payload: UpdateProfilePayload) {
     return put<User>("/user/me", payload);
+  },
+
+  /** Upload a profile avatar image (stored on Cloudinary). */
+  async uploadAvatar(file: File) {
+    const formData = new FormData();
+    formData.append("avatar", file);
+    const res = await httpClient.put<{ success: boolean; message: string; data: User }>(
+      "/user/me/avatar",
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return res.data;
   },
 
   /**
@@ -48,7 +63,7 @@ const userService = {
 
   /** Upgrade the current user's subscription plan. */
   upgradePlan(plan: "FREE" | "PRO") {
-    return post<User>("/user/upgrade", { plan });
+    return put<User>("/user/upgrade", { plan });
   },
 } as const;
 

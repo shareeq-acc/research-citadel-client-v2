@@ -11,9 +11,11 @@ import {
 } from "lucide-react";
 import { getAiUsagePercents } from "@/lib/aiUsage";
 import { useApp } from "@/context/AppContext";
-import { vaultService, userService, annotationService, invitationService } from "@/services";
+import { vaultService, userService, annotationService, invitationService, passportService } from "@/services";
 import { Source, Annotation, Vault } from "@/types";
 import { RenderUserAvatar } from "@/components/RenderUserAvatar";
+import { PassportCard } from "@/components/passport/PassportCard";
+import type { VaultPassport } from "@/services/passport.service";
 import StatsTab from "@/components/vault/StatsTab";
 import SourcesTab from "@/components/vault/SourcesTab";
 import QAPanel from "@/components/vault/QAPanel";
@@ -518,9 +520,6 @@ export default function DashboardClient() {
                         mobileSidebarOpen={mobileSidebarOpen}
                         setMobileSidebarOpen={setMobileSidebarOpen}
                         onNavigateToPassport={() => router.push(`/passport/${activeVault.id}`)}
-                        idCardNickname={""}
-                        idCardSpecialization={""}
-                        idCardMotto={""}
                       />
                     )}
                   </>
@@ -1182,10 +1181,31 @@ function VaultSettingsTab({
   expandAnnotationsByDefault, setExpandAnnotationsByDefault,
   notifyOnNewAnnotations, setNotifyOnNewAnnotations,
   onNavigateToPassport,
-  idCardNickname, idCardSpecialization, idCardMotto,
   settingsSidebarCollapsed, setSettingsSidebarCollapsed,
   mobileSidebarOpen, setMobileSidebarOpen,
 }: any) {
+  const [passport, setPassport] = React.useState<VaultPassport | null>(null);
+  const [passportLoading, setPassportLoading] = React.useState(false);
+  const [passportError, setPassportError] = React.useState("");
+
+  React.useEffect(() => {
+    if (activeSettingsSubTab !== "idcard" || !activeVault?.id) return;
+    let cancelled = false;
+    setPassportLoading(true);
+    setPassportError("");
+    passportService
+      .getPassport(activeVault.id)
+      .then((res) => {
+        if (!cancelled && res.success) setPassport(res.data);
+      })
+      .catch((err: { message?: string }) => {
+        if (!cancelled) setPassportError(err?.message || "Failed to load passport.");
+      })
+      .finally(() => {
+        if (!cancelled) setPassportLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [activeSettingsSubTab, activeVault?.id]);
 
   return (
     <div className="space-y-6">
@@ -1509,63 +1529,30 @@ function VaultSettingsTab({
                     <Fingerprint className="w-5 h-5 text-emerald-600 stroke-[2.5]" />
                     Identity & Clearance Passport
                   </h3>
-                  <p className="text-[11px] text-stone-500 font-sans font-medium">Your digital vault ledger credentials and unique Neobrutalist sector passport card.</p>
+                  <p className="text-[11px] text-stone-500 font-sans font-medium">Your digital vault credentials and unique researcher passport for this vault.</p>
                 </div>
-                <span className="text-[9px] font-mono font-bold px-2 py-1 bg-emerald-100 border-2 border-neo-dark rounded text-emerald-950 uppercase shadow-[1.5px_1.5px_0px_#000]">Active Cryptosector ID Card</span>
+                <span className="text-[9px] font-mono font-bold px-2 py-1 bg-emerald-100 border-2 border-neo-dark rounded text-emerald-950 uppercase shadow-[1.5px_1.5px_0px_#000]">Active Vault Passport</span>
               </div>
 
               <div className="bg-white rounded-sm border-4 border-neo-dark p-6 md:p-8 shadow-[6px_6px_0px_#000] flex flex-col items-center space-y-6">
-                {/* Passport preview */}
                 <div className="w-full max-w-2xl border-0 sm:border-4 border-dashed border-stone-300 p-0 sm:p-4 rounded-md flex flex-col items-center relative">
-                  <div className="w-full bg-stone-50 border-2 sm:border-4 border-neo-dark rounded-xs sm:rounded-sm p-3.5 sm:p-4 md:p-6 shadow-[4px_4px_0px_#000] sm:shadow-[8px_8px_0px_#000] relative overflow-hidden">
-                    <div className="border-b-4 border-neo-dark pb-3.5 mb-4 flex justify-between items-start flex-wrap gap-2">
-                      <div>
-                        <h5 className="font-display font-black text-xs md:text-sm text-neo-dark tracking-wide block uppercase leading-none">SECURE RESEARCH BOUNDS PASSPORT</h5>
-                        <span className="text-[8px] md:text-[9px] font-mono font-bold text-stone-500 uppercase block tracking-wider mt-1">COGNITIVE VAULT INTEL DIRECTORY APPARATUS</span>
-                      </div>
-                      <span className="text-[8px] font-mono font-black border border-neo-dark px-1.5 py-0.5 rounded bg-neo-yellow text-neo-dark uppercase shadow-[1.5px_1.5px_0px_#000]">V.SECURE</span>
+                  {passportLoading && (
+                    <div className="w-full h-64 flex items-center justify-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-neo-dark" />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-                      <div className="col-span-1 md:col-span-4 flex flex-col items-center space-y-2">
-                        <RenderUserAvatar avatar={currentUser ? currentUser.avatar : null} name={idCardNickname || (currentUser ? currentUser.name : "Scholar")} size={100} squareBorder={true} />
-                        <div className="text-center w-full">
-                          <span className="text-[8px] font-mono font-black uppercase text-stone-500 block leading-none mb-1">Pass Hologram</span>
-                          <div className="flex gap-1 justify-center">
-                            <div className="w-4 h-4 rounded-full bg-stone-200 border border-neo-dark flex items-center justify-center text-[7px] font-black tracking-tight select-none">ID</div>
-                            <div className="w-10 h-4 border border-neo-dark bg-stone-100 flex items-center justify-around px-0.5">
-                              {[3, 4, 2, 3, 2, 2, 4].map((h, i) => <div key={i} className={`w-0.5 bg-neo-dark`} style={{ height: `${h * 3}px` }} />)}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-span-1 md:col-span-8 space-y-2.5 font-sans font-semibold text-stone-700 text-left">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                          <div className="border-b-2 border-stone-100 pb-1"><span className="text-[8px] font-mono font-black text-stone-400 uppercase tracking-widest block leading-none mb-0.5">AGENT ALIAS</span><span className="text-xs font-display font-black text-neo-dark block uppercase truncate">{idCardNickname || (currentUser ? currentUser.name : "Anonymous Agent")}</span></div>
-                          <div className="border-b-2 border-stone-100 pb-1"><span className="text-[8px] font-mono font-black text-stone-400 uppercase tracking-widest block leading-none mb-0.5">BOUND STATUS</span><span className="text-xs font-display font-black text-emerald-600 block uppercase">{activeVault?.myRole || "OWNER"} LEVEL</span></div>
-                        </div>
-                        <div className="border-b-2 border-stone-100 pb-1"><span className="text-[8px] font-mono font-black text-stone-400 uppercase tracking-widest block leading-none mb-0.5">AUTHORIZED VAULT INDEX</span><span className="text-[11px] font-display font-black text-indigo-700 block uppercase truncate">{activeVault?.name || "GLOBAL SYSTEM CORE VAULT"}</span></div>
-                        <div className="border-b-2 border-stone-100 pb-1"><span className="text-[8px] font-mono font-black text-stone-400 uppercase tracking-widest block leading-none mb-0.5">SPECIALIZATION BRANCH</span><span className="text-[11px] font-sans font-black text-neo-dark block uppercase truncate">{idCardSpecialization || "Advanced System Architect"}</span></div>
-                        <div className="border-b-2 border-stone-100 pb-1"><span className="text-[8px] font-mono font-black text-stone-400 uppercase tracking-widest block leading-none mb-0.5">PERSONAL DIRECTIVE MOTTO</span><p className="text-[10px] font-sans font-bold leading-tight text-stone-500 italic">"{idCardMotto || "Data verification is the supreme virtue."}"</p></div>
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1.5 border-t border-stone-100">
-                          <div className="grid grid-cols-2 gap-4 text-[9px] font-mono font-bold text-stone-400 uppercase flex-1">
-                            <div><span className="block text-[7px] text-stone-400">PASSPORT NODE INDEX</span><span className="text-neo-dark tracking-tighter">NODE-VT-{activeVault ? activeVault.id.slice(0, 8).toUpperCase() : "SECURE"}</span></div>
-                            <div><span className="block text-[7px] text-stone-400">SECTOR CALENDER MATRIX</span><span className="text-neo-dark">02.06.2026</span></div>
-                          </div>
-                          <div className="border-4 border-dashed border-rose-500/85 rounded-xs py-1 px-2.5 text-rose-500/85 text-[10px] font-display font-black tracking-widest uppercase select-none pointer-events-none shadow-[1.5px_1.5px_0px_rgba(239,68,68,0.2)] shrink-0">APPROVED SECTOR</div>
-                        </div>
-                      </div>
+                  )}
+                  {!passportLoading && passportError && (
+                    <div className="w-full p-4 bg-rose-50 border-2 border-rose-400 text-rose-800 text-xs font-mono rounded">
+                      {passportError}
                     </div>
-                    <div className="mt-4 pt-3.5 border-t-2 border-dashed border-stone-300 flex flex-col sm:flex-row items-center justify-between gap-3 text-stone-500 text-[10px]">
-                      <div className="flex items-center gap-2">
-                        <Fingerprint className="w-5 h-5 text-neo-dark stroke-[2]" />
-                        <div className="text-left leading-none"><span className="text-[7.5px] font-mono font-bold text-stone-400 block uppercase">SECURE ENCRYPTION SEQUENCE</span><span className="font-mono text-[9px] text-neo-dark whitespace-nowrap">SHA-256V://COGNIT_SEC_VERIFY</span></div>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <div className="h-6 w-32 bg-stone-50 border border-stone-300 rounded-sm opacity-85" style={{ background: "repeating-linear-gradient(90deg,transparent,transparent 2px,#000 2px,#000 5px,transparent 5px,transparent 6px,#000 6px,#000 7px,transparent 7px,transparent 9px,#000 9px,#000 12px)" }} />
-                        <span className="text-[7px] font-mono font-bold text-stone-400 tracking-wider mt-0.5">AUTH-VT-{activeVault ? activeVault.id.toUpperCase().slice(0, 12) : "SECURE"}</span>
-                      </div>
-                    </div>
-                  </div>
+                  )}
+                  {!passportLoading && passport && (
+                    <PassportCard
+                      passport={passport}
+                      avatar={currentUser?.avatar}
+                      size="sm"
+                    />
+                  )}
                 </div>
 
                 <div className="w-full max-w-md flex flex-col items-center gap-3">
@@ -1575,9 +1562,9 @@ function VaultSettingsTab({
                     className="w-full py-3.5 px-6 bg-neo-yellow hover:bg-yellow-400 text-neo-dark border-4 border-neo-dark font-display font-black text-xs uppercase tracking-widest rounded shadow-[4px_4px_0px_#000] cursor-pointer hover:shadow-[5px_5px_0px_#000] active:translate-y-0.5 active:shadow-[1px_1px_0px_#000] transition-all flex items-center justify-center gap-2"
                   >
                     <Edit3 className="w-4 h-4 text-neo-dark stroke-[2.5]" />
-                    <span>Configure Cryptographic Alias</span>
+                    <span>Edit Passport</span>
                   </button>
-                  <p className="text-[10px] text-stone-400 font-mono text-center">Opens the immersive fullscreen compiler workspace to customize your Neobrutalist custom avatar and passport specs.</p>
+                  <p className="text-[10px] text-stone-400 font-mono text-center">Update your vault alias, specialization, and motto. Scan the QR code to verify membership.</p>
                 </div>
               </div>
             </div>
