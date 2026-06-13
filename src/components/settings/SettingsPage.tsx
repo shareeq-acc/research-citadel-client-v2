@@ -37,18 +37,16 @@ interface SettingsPageProps {
   computedProfileAvatar: string | null;
   alertSettings: {
     chatMentions: boolean;
-    securityIssues: boolean;
-    sourceAdditions: boolean;
+    securityAlerts: boolean;
     systemUpdates: boolean;
   };
   setAlertSettings: React.Dispatch<React.SetStateAction<{
     chatMentions: boolean;
-    securityIssues: boolean;
-    sourceAdditions: boolean;
+    securityAlerts: boolean;
     systemUpdates: boolean;
   }>>;
   savingAlerts: boolean;
-  setSavingAlerts: (v: boolean) => void;
+  handleSaveAlerts: () => void;
   profileLoader: boolean;
   handleSaveProfile: (e: React.FormEvent) => void;
   handleUploadImageFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -91,7 +89,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   alertSettings,
   setAlertSettings,
   savingAlerts,
-  setSavingAlerts,
+  handleSaveAlerts,
   profileLoader,
   handleSaveProfile,
   handleUploadImageFile,
@@ -102,6 +100,24 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   setErrMessage,
   setOkMessage,
 }) => {
+  const alertOptions = [
+    {
+      key: "chatMentions" as const,
+      title: "Colloquium @Mentions",
+      description: "Get notified when a teammate @mentions your username in a vault colloquium chat.",
+    },
+    {
+      key: "securityAlerts" as const,
+      title: "Account & Vault Security",
+      description: "Alerts for vault membership changes, invitation responses, and email verification on your account.",
+    },
+    {
+      key: "systemUpdates" as const,
+      title: "Platform & AI Updates",
+      description: "Notifications when AI analysis jobs finish and for important platform announcements.",
+    },
+  ];
+
   return (
     <div className="max-w-4xl mx-auto bg-white p-6 rounded neo-border neo-shadow-sm space-y-6">
       <div className="border-b-4 border-neo-dark pb-3 flex justify-between items-center">
@@ -634,89 +650,59 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <div className="space-y-5 text-left">
               <div className="border-b-2 border-neo-dark pb-2 select-none">
                 <h3 className="font-display font-black text-sm uppercase text-neo-dark">
-                  Email Alert Options
+                  Alert Preferences
                 </h3>
                 <p className="text-[10px] text-stone-500 font-mono">
-                  Configure automated digital dispatching parameters for peer collaboration
+                  Choose which in-app and email alerts you receive
                 </p>
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-white border-2 border-neo-dark rounded shadow-[1.5px_1.5px_0px_#000]">
-                  <div className="space-y-0.5 pr-4">
-                    <span className="block font-bold text-xs text-neo-dark">Scholar Colloquium Mentions</span>
-                    <span className="block text-[10px] text-stone-500 font-mono leading-tight">
-                      Receive emails when other researchers tag your workspace profile in discussion logs
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={alertSettings.chatMentions}
-                    onChange={(e) => setAlertSettings({ ...alertSettings, chatMentions: e.target.checked })}
-                    className="w-4 h-4 rounded border-2 border-neo-dark text-neo-orange focus:ring-0 cursor-pointer h-4 w-4 bg-white checked:bg-neo-dark"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-white border-2 border-neo-dark rounded shadow-[1.5px_1.5px_0px_#000]">
-                  <div className="space-y-0.5 pr-4">
-                    <span className="block font-bold text-xs text-neo-dark">Immediate Cryptographic Audits</span>
-                    <span className="block text-[10px] text-stone-500 font-mono leading-tight">
-                      Notifications on key updates, vault export actions, and membership roll changes
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={alertSettings.securityIssues}
-                    onChange={(e) => setAlertSettings({ ...alertSettings, securityIssues: e.target.checked })}
-                    className="w-4 h-4 rounded border-2 border-neo-dark text-neo-orange focus:ring-0 cursor-pointer h-4 w-4 bg-white checked:bg-neo-dark"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-white border-2 border-neo-dark rounded shadow-[1.5px_1.5px_0px_#000]">
-                  <div className="space-y-0.5 pr-4">
-                    <span className="block font-bold text-xs text-neo-dark">Resource Catalog Additions</span>
-                    <span className="block text-[10px] text-stone-500 font-mono leading-tight">
-                      Get updates when team members index new citation references or PDFs in your vaults
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={alertSettings.sourceAdditions}
-                    onChange={(e) => setAlertSettings({ ...alertSettings, sourceAdditions: e.target.checked })}
-                    className="w-4 h-4 rounded border-2 border-neo-dark text-neo-orange focus:ring-0 cursor-pointer h-4 w-4 bg-white checked:bg-neo-dark"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-white border-2 border-neo-dark rounded shadow-[1.5px_1.5px_0px_#000]">
-                  <div className="space-y-0.5 pr-4">
-                    <span className="block font-bold text-xs text-neo-dark">System Upgrades and Compute Status</span>
-                    <span className="block text-[10px] text-stone-500 font-mono leading-tight">
-                      Receive occasional communications regarding sandbox limits and platform metrics
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={alertSettings.systemUpdates}
-                    onChange={(e) => setAlertSettings({ ...alertSettings, systemUpdates: e.target.checked })}
-                    className="w-4 h-4 rounded border-2 border-neo-dark text-neo-orange focus:ring-0 cursor-pointer h-4 w-4 bg-white checked:bg-neo-dark"
-                  />
-                </div>
+                {alertOptions.map((option) => {
+                  const enabled = alertSettings[option.key];
+                  return (
+                    <div
+                      key={option.key}
+                      className="flex items-center justify-between gap-4 p-3 bg-white border-2 border-neo-dark rounded shadow-[1.5px_1.5px_0px_#000]"
+                    >
+                      <div className="space-y-0.5 pr-2 min-w-0">
+                        <span className="block font-display font-black text-xs text-neo-dark uppercase tracking-wide">
+                          {option.title}
+                        </span>
+                        <span className="block text-[10px] text-stone-500 font-mono leading-tight">
+                          {option.description}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setAlertSettings((prev) => ({
+                            ...prev,
+                            [option.key]: !prev[option.key],
+                          }))
+                        }
+                        className={`py-1.5 px-4 border-2 border-neo-dark font-display font-black text-[10px] uppercase rounded-xs cursor-pointer transition-all shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 shrink-0 ${
+                          enabled
+                            ? "bg-neo-yellow text-neo-dark"
+                            : "bg-stone-200 text-stone-600 hover:bg-stone-300"
+                        }`}
+                        aria-pressed={enabled}
+                      >
+                        {enabled ? "On" : "Off"}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="flex gap-2 justify-end pt-2 border-t-2 border-neo-dark">
                 <button
                   type="button"
-                  onClick={() => {
-                    setSavingAlerts(true);
-                    setTimeout(() => {
-                      setSavingAlerts(false);
-                      setOkMessage("Notification parameters inscribed in core ledger successfully.");
-                    }, 500);
-                  }}
+                  onClick={handleSaveAlerts}
                   disabled={savingAlerts}
-                  className="neo-btn px-6 py-2.5 text-xs shadow-[1.5px_1.5px_0px_#0A0A0A] bg-neo-yellow cursor-pointer text-neo-dark font-bold font-display"
+                  className="neo-btn px-6 py-2.5 text-xs shadow-[1.5px_1.5px_0px_#0A0A0A] bg-neo-yellow cursor-pointer text-neo-dark font-bold font-display disabled:opacity-60"
                 >
-                  {savingAlerts ? "Inscribing alerts..." : "Commit Alert Preferences"}
+                  {savingAlerts ? "Saving..." : "Save Alert Preferences"}
                 </button>
               </div>
             </div>

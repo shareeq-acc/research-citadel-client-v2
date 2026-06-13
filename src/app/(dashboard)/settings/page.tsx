@@ -6,6 +6,13 @@ import { useApp } from "@/context/AppContext";
 import { userService } from "@/services";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { SkeletonSettingsPage } from "@/components/shared/Skeleton";
+import type { AlertPreferences } from "@/types";
+
+const DEFAULT_ALERT_SETTINGS: AlertPreferences = {
+  chatMentions: true,
+  securityAlerts: true,
+  systemUpdates: true,
+};
 
 export default function SettingsRoute() {
   const router = useRouter();
@@ -27,12 +34,7 @@ export default function SettingsRoute() {
   const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
   const [profileLoader, setProfileLoader] = useState(false);
   const [activeSettingsTab, setActiveSettingsTab] = useState<"profile" | "alerts">("profile");
-  const [alertSettings, setAlertSettings] = useState({
-    chatMentions: true,
-    securityIssues: true,
-    sourceAdditions: false,
-    systemUpdates: true,
-  });
+  const [alertSettings, setAlertSettings] = useState<AlertPreferences>(DEFAULT_ALERT_SETTINGS);
   const [savingAlerts, setSavingAlerts] = useState(false);
   const [errMessage, setErrMessage] = useState("");
   const [okMessage, setOkMessage] = useState("");
@@ -54,8 +56,11 @@ export default function SettingsRoute() {
       setProfileName(currentUser.name);
       setProfileMotto(currentUser.motto || "");
       setPendingAvatarFile(null);
+      if (currentUser.alertPreferences) {
+        setAlertSettings(currentUser.alertPreferences);
+      }
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentUser?.alertPreferences]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,6 +136,31 @@ export default function SettingsRoute() {
     e.target.value = "";
   };
 
+  const handleSaveAlerts = async () => {
+    if (!currentUser) return;
+    setSavingAlerts(true);
+    setErrMessage("");
+    setOkMessage("");
+    try {
+      const res = await userService.updateAlertPreferences(alertSettings);
+      if (res.success && res.data) {
+        setAlertSettings(res.data);
+        setCurrentUser({ ...currentUser, alertPreferences: res.data });
+        setOkMessage("Alert preferences saved.");
+        setTimeout(() => setOkMessage(""), 3000);
+      } else {
+        setErrMessage(res.message || "Failed to save alert preferences.");
+      }
+    } catch (err: unknown) {
+      const message = err && typeof err === "object" && "message" in err
+        ? String((err as { message: string }).message)
+        : "Connection error while saving alert preferences.";
+      setErrMessage(message);
+    } finally {
+      setSavingAlerts(false);
+    }
+  };
+
   if (!currentUser) return <SkeletonSettingsPage />;
 
   return (
@@ -173,7 +203,7 @@ export default function SettingsRoute() {
       alertSettings={alertSettings}
       setAlertSettings={setAlertSettings}
       savingAlerts={savingAlerts}
-      setSavingAlerts={setSavingAlerts}
+      handleSaveAlerts={handleSaveAlerts}
       profileLoader={profileLoader}
       handleSaveProfile={handleSaveProfile}
       handleUploadImageFile={handleFileInputChange}

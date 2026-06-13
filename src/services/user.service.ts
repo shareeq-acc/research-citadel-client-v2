@@ -3,7 +3,7 @@
  */
 
 import httpClient, { get, put } from "@/lib/http-client";
-import type { User } from "@/types";
+import type { AlertPreferences, User } from "@/types";
 
 // ── DTOs ──────────────────────────────────────────────────────────────────────
 
@@ -11,6 +11,12 @@ export interface UpdateProfilePayload {
   name?: string;
   avatar?: string | null;
   motto?: string;
+}
+
+export interface UpdateAlertPreferencesPayload {
+  chatMentions?: boolean;
+  securityAlerts?: boolean;
+  systemUpdates?: boolean;
 }
 
 export interface UserSearchResult {
@@ -64,6 +70,11 @@ const userService = {
   /** Upgrade the current user's subscription plan. */
   upgradePlan(plan: "FREE" | "PRO") {
     return put<User>("/user/upgrade", { plan });
+  },
+
+  /** Update the current user's alert/email notification toggles. */
+  updateAlertPreferences(payload: UpdateAlertPreferencesPayload) {
+    return put<AlertPreferences>("/user/me/alerts", payload);
   },
 } as const;
 

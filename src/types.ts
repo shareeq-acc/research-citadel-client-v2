@@ -17,6 +17,13 @@ export interface User {
     weeklyLimit: number;
   };
   hasNotifications?: boolean;
+  alertPreferences?: AlertPreferences;
+}
+
+export interface AlertPreferences {
+  chatMentions: boolean;
+  securityAlerts: boolean;
+  systemUpdates: boolean;
 }
 
 export type NotificationType =
