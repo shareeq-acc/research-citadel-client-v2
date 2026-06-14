@@ -21,6 +21,7 @@ export const PROCESS_STEPS = [
     title: "Create a Research Vault",
     desc: "Spin up a shared workspace for your project. Set it public or private, add a description, and invite your team in seconds.",
     chips: ["Public or Private", "Invite Your Team", "Role-Based Access"],
+    url: "app.researchcitadel.com/dashboard",
   },
   {
     num: "02",
@@ -28,6 +29,7 @@ export const PROCESS_STEPS = [
     title: "Upload Your Sources",
     desc: "Drag in PDFs or paste web article URLs. Full text is extracted and semantically indexed — every source becomes queryable by AI.",
     chips: ["PDF Files", "Web Articles", "Auto-Indexed"],
+    url: "app.researchcitadel.com/vault/ai-foundations/sources",
   },
   {
     num: "03",
@@ -35,6 +37,7 @@ export const PROCESS_STEPS = [
     title: "Get AI Insights & Summaries",
     desc: "Extract research problem, methodology, key findings, contributions, limitations, and future work — grounded in the source.",
     chips: ["AI Summaries", "Key Findings", "Limitations"],
+    url: "app.researchcitadel.com/vault/ai-foundations/sources?tab=insights",
   },
   {
     num: "04",
@@ -42,6 +45,7 @@ export const PROCESS_STEPS = [
     title: "Ask the AI Anything",
     desc: "Select which sources to query and ask free-form questions. Answers come only from your documents — no outside knowledge.",
     chips: ["Free-form Q&A", "Source-scoped", "Quick Prompts"],
+    url: "app.researchcitadel.com/vault/ai-foundations/qa",
   },
   {
     num: "05",
@@ -49,7 +53,7 @@ export const PROCESS_STEPS = [
     title: "Annotate & Collaborate Live",
     desc: "Write Markdown notes mapped to exact pages and sections. Your team sees changes in real time with conflict detection.",
     chips: ["Live Co-editing", "Conflict Resolver", "Version History"],
-    highlight: true,
+    url: "app.researchcitadel.com/vault/ai-foundations/workspace",
   },
   {
     num: "06",
@@ -57,28 +61,28 @@ export const PROCESS_STEPS = [
     title: "Chat & Coordinate as a Team",
     desc: "Each vault has a dedicated chat stream. @mention teammates, reply to threads, and reference sources inline.",
     chips: ["@mentions", "Threaded Replies", "Slash Commands"],
-    highlight: true,
+    url: "app.researchcitadel.com/vault/ai-foundations/chat",
   },
 ];
 
 export const COLLAB_ITEMS = [
   {
-    badge: "REAL-TIME",
-    title: "Live Co-Presence",
-    desc: "See who's in the workspace, what they're editing, and what they're viewing — all in real time.",
+    badge: "MULTIPLAYER",
+    title: "Live Multiplayer Editing",
+    desc: "Co-write and highlight documents simultaneously. See exact cursors, active text selections, and paragraph focuses in real time.",
     preview: "presence",
   },
   {
-    badge: "CHAT",
-    title: "Vault Colloquium",
-    desc: "Dedicated per-vault chat with @mentions, threaded replies, and typing indicators where the research lives.",
+    badge: "TEAM CHAT",
+    title: "Contextual Vault Chat",
+    desc: "Discuss sources directly inside the vault with threaded replies, teammate @mentions, and document references.",
     preview: "chat",
   },
   {
-    badge: "CONFLICTS",
-    title: "Smart Merge Engine",
-    desc: "When two researchers edit the same paragraph, changes merge gracefully — no chaotic overwrites.",
-    preview: "merge",
+    badge: "ACCESS ROLES",
+    title: "Granular Member Roles",
+    desc: "Invite team members and assign secure Owner, Contributor, or Viewer privileges to manage editing and annotation permissions.",
+    preview: "roles",
   },
 ];
 

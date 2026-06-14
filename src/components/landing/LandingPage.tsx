@@ -5,7 +5,6 @@ import "./landing.css";
 import { LandingNav, LandingTicker } from "./LandingNav";
 import { LandingHero } from "./LandingHero";
 import { LandingProcess, LandingCollab, LandingFeatures, LandingRoles } from "./LandingSections";
-import { LandingPreview } from "./LandingPreview";
 import { LandingPricing, LandingCtaStrip, LandingFooter } from "./LandingPricingFooter";
 
 interface LandingPageProps {
@@ -24,7 +23,6 @@ export default function LandingPage({ currentUser, onNavigate }: LandingPageProp
         <LandingCollab />
         <LandingFeatures />
         <LandingRoles />
-        <LandingPreview />
         <LandingPricing currentUser={currentUser} onNavigate={onNavigate} />
         <LandingCtaStrip currentUser={currentUser} onNavigate={onNavigate} />
       </main>
