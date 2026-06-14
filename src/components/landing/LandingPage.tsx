@@ -16,7 +16,7 @@ export default function LandingPage({ currentUser, onNavigate }: LandingPageProp
   return (
     <div className="landing-page min-h-screen flex flex-col">
       <LandingNav currentUser={currentUser} onNavigate={onNavigate} />
-      <LandingTicker />
+      {/* <LandingTicker /> */}
       <main className="flex-1">
         <LandingHero currentUser={currentUser} onNavigate={onNavigate} />
         <LandingProcess />

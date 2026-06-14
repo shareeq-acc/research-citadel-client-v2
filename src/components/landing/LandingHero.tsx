@@ -32,19 +32,18 @@ export function LandingHero({ currentUser, onNavigate }: LandingHeroProps) {
   return (
     <section className="grid grid-cols-1 lg:grid-cols-2 min-h-[calc(100vh-100px)] lp-border border-x-0 border-t-0">
       <div className="lp-hero-grid border-b lg:border-b-0 lg:border-r lp-border border-x-0 border-t-0 px-6 md:px-14 py-16 lg:py-[72px] flex flex-col justify-center relative">
-        <div className="inline-flex items-center gap-2 bg-black text-[#ffd000] font-mono text-[11px] font-bold tracking-widest px-3.5 py-1.5 lp-border border-black w-fit mb-7">
-          <span className="w-2 h-2 bg-[#00c48c] rounded-full lp-live-dot" />
-          Grounded AI Q&A is live
-        </div>
+
 
         <h1 className="font-display font-extrabold text-[clamp(2.5rem,6vw,5.25rem)] leading-[0.95] tracking-tight">
           Where Teams
           <br />
           Do Real
           <br />
-          <span className="inline-block bg-[#ffd000] px-2.5 py-0.5 lp-border -rotate-1 lp-shadow mt-1">
+          Research.
+
+          {/* <span className="inline-block bg-[#ffd000] px-2.5 py-0.5 lp-border -rotate-1 lp-shadow mt-1">
             Research.
-          </span>
+          </span> */}
         </h1>
 
         <p className="mt-6 text-base leading-relaxed text-[#444] max-w-md">
@@ -55,19 +54,6 @@ export function LandingHero({ currentUser, onNavigate }: LandingHeroProps) {
           <LandingCtaButtons onNavigate={onNavigate} currentUser={currentUser} />
         </div>
 
-        <div className="flex flex-wrap mt-12 lp-border w-fit">
-          {[
-            { n: "3", l: "Access Roles" },
-            { n: "∞", l: "Annotations" },
-            { n: "PDF", l: "+ Web Articles" },
-            { n: "AI", l: "Grounded Q&A" },
-          ].map((s, i) => (
-            <div key={s.l} className={`px-5 py-3 ${i < 3 ? "border-r lp-border border-y-0 border-l-0" : ""}`}>
-              <div className="font-mono text-xl font-bold leading-none">{s.n}</div>
-              <div className="text-[10px] text-[#777] uppercase tracking-wider font-mono mt-1">{s.l}</div>
-            </div>
-          ))}
-        </div>
       </div>
 
       <div className="bg-black px-6 md:px-9 py-11 flex flex-col justify-center gap-3 relative overflow-hidden">

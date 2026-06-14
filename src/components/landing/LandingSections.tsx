@@ -21,9 +21,9 @@ export function LandingProcess() {
               insight, step by step.
             </h2>
           </div>
-          <p className="text-[15px] text-[#555] leading-relaxed self-end">
+          {/* <p className="text-[15px] text-[#555] leading-relaxed self-end">
             Research Citadel is built around how teams actually work — create vaults, upload papers, analyse with AI, annotate together, and communicate without ever leaving the platform.
-          </p>
+          </p> */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -33,11 +33,10 @@ export function LandingProcess() {
                 key={s.num}
                 type="button"
                 onClick={() => setActiveStep(i)}
-                className={`text-left border-4 border-black p-4 cursor-pointer transition-all rounded-sm ${
-                  activeStep === i
-                    ? "bg-yellow-300 shadow-[4px_4px_0px_#000] -translate-y-0.5"
-                    : "bg-white shadow-[3px_3px_0px_#000] hover:shadow-[4px_4px_0px_#000] hover:-translate-y-0.5"
-                }`}
+                className={`text-left border-4 border-black p-4 cursor-pointer transition-all rounded-sm ${activeStep === i
+                  ? "bg-yellow-300 shadow-[4px_4px_0px_#000] -translate-y-0.5"
+                  : "bg-white shadow-[3px_3px_0px_#000] hover:shadow-[4px_4px_0px_#000] hover:-translate-y-0.5"
+                  }`}
               >
                 <div className="flex items-center gap-2.5">
                   <span className={`font-mono text-xs font-black ${activeStep === i ? "text-black" : "text-stone-400"}`}>{s.num}</span>
@@ -99,9 +98,8 @@ export function LandingProcess() {
                           key={i}
                           type="button"
                           onClick={() => setActiveStep(i)}
-                          className={`w-3 h-3 border-2 border-black cursor-pointer transition-all ${
-                            i === activeStep ? "bg-yellow-300 shadow-[1px_1px_0px_#000]" : "bg-stone-100 hover:bg-stone-200"
-                          }`}
+                          className={`w-3 h-3 border-2 border-black cursor-pointer transition-all ${i === activeStep ? "bg-yellow-300 shadow-[1px_1px_0px_#000]" : "bg-stone-100 hover:bg-stone-200"
+                            }`}
                         />
                       ))}
                       <span className="font-mono text-[9px] text-stone-500 font-bold ml-2">
@@ -126,7 +124,7 @@ export function LandingProcess() {
       </div>
     </section>
   );
-}function CollabPreview({ type }: { type: string }) {
+} function CollabPreview({ type }: { type: string }) {
   if (type === "presence") {
     return (
       <div className="mt-4 shrink-0 select-none">
@@ -146,7 +144,7 @@ export function LandingProcess() {
               </span>
             </div>
           </div>
-          
+
           <div className="flex flex-wrap gap-1.5">
             {[
               { name: "Samuel Charlie", badge: "EDITING", color: "bg-amber-100 border-amber-400 text-amber-900" },
@@ -299,9 +297,9 @@ export function LandingCollab() {
               think together.
             </h2>
           </div>
-          <p className="text-[15px] text-[#555] leading-relaxed self-end">
+          {/* <p className="text-[15px] text-[#555] leading-relaxed self-end">
             Research Citadel is built for seamless scholarly teamwork — co-write annotations, discuss papers in dedicated contextual channels, and manage collaborator access easily.
-          </p>
+          </p> */}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {COLLAB_ITEMS.map((item, idx) => {
@@ -354,9 +352,9 @@ export function LandingFeatures() {
               Everything your research team needs.
             </h2>
           </div>
-          <p className="text-[15px] text-[#555] leading-relaxed self-end">
+          {/* <p className="text-[15px] text-[#555] leading-relaxed self-end">
             From solo researchers to multi-institution collaborations — vaults, citations, AI Q&A, and live annotations in one place.
-          </p>
+          </p> */}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {FEATURES.map(({ icon: Icon, title, desc }) => (
