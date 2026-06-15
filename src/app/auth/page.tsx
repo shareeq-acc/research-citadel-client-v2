@@ -21,7 +21,7 @@ function extractMessage(err: unknown, fallback: string): string {
 function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { currentUser, setCurrentUser } = useApp();
+  const { currentUser, setCurrentUser, loadVaultList } = useApp();
 
   const [screen, setScreen] = useState<
     "login" | "register" | "check-email" | "verify-otp" | "forgot-password" | "reset-password"
@@ -79,6 +79,7 @@ function AuthContent() {
       const res = await authService.login({ email: loginEmail, password: loginPass });
       if (res.success) {
         setCurrentUser(res.data.user);
+        await loadVaultList();
         router.push("/dashboard");
       } else {
         setErrMessage(res.message ?? "Login failed.");
