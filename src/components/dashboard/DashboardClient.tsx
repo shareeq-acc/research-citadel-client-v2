@@ -226,14 +226,14 @@ export default function DashboardClient() {
             <Sparkles className="w-5 h-5 text-neo-dark fill-current" />
             Welcome, Scholar {currentUser?.name || "Seer Ijj"}!
           </h1>
-          <p className="text-xs font-medium text-neo-dark mt-1 max-w-2xl font-mono">
+          <p className="text-xs font-medium text-neo-dark mt-1 font-mono">
             Inscribe secure encrypted Research Vaults, parse reference citation indices, review collaborative logs, and launch grounded peer search sessions.
           </p>
         </div>
-        <div className="bg-white border-2 border-neo-dark px-3 py-1.5 rounded-sm shadow-[2px_2px_0px_rgba(0,0,0,1)] flex items-center gap-2 self-start md:self-auto">
+        {/* <div className="bg-white border-2 border-neo-dark px-3 py-1.5 rounded-sm shadow-[2px_2px_0px_rgba(0,0,0,1)] flex items-center gap-2 self-start md:self-auto">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse border border-neo-dark" />
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-neo-dark">Standard Nodes Sandbox Live</span>
-        </div>
+        </div> */}
       </div>
 
       {/* Compute Stats Grid */}

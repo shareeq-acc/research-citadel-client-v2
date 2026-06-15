@@ -143,7 +143,7 @@ export default function StatsTab({ vaultId, members, auditData }: StatsTabProps)
                 Contribution Heatmap
               </h3>
               <span className="text-[9px] font-mono font-bold bg-[#FAFAF9] px-2 py-0.5 border border-neo-dark text-stone-600 rounded">
-                12-Week Activity Ledger
+                12-Week Activity
               </span>
             </div>
             <p className="text-stone-500 text-xs mb-4 font-sans">
