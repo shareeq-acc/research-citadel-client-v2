@@ -111,7 +111,7 @@ export default function DashboardClient() {
         setNewVaultDesc("");
         setNewVaultPrivacy("PRIVATE");
         setShowVaultForm(false);
-        setOkMessage("🟢 Secure Vault node allocated successfully!");
+        setOkMessage("Vault created successfully!");
         setActiveVault(res.data);
         loadVaultList(res.data.id);
         setTimeout(() => setOkMessage(""), 4000);
@@ -119,7 +119,7 @@ export default function DashboardClient() {
         setErrMessage(res.message || "Failed to create vault.");
       }
     } catch (err: any) {
-      setErrMessage(err?.message || "Connection error while registering vault node.");
+      setErrMessage(err?.message || "Connection error. Please try again.");
     } finally {
       setCreatingVault(false);
     }
@@ -223,11 +223,10 @@ export default function DashboardClient() {
       <div className="bg-neo-yellow border-4 border-neo-dark p-6 rounded-sm shadow-[4px_4px_0px_rgba(0,0,0,1)] flex flex-col md:flex-row md:items-center justify-between gap-4 text-left">
         <div>
           <h1 className="font-display font-black text-lg md:text-xl text-neo-dark uppercase flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-neo-dark fill-current" />
-            Welcome, Scholar {currentUser?.name || "Seer Ijj"}!
+            Welcome, {currentUser?.name || "Researcher"}!
           </h1>
           <p className="text-xs font-medium text-neo-dark mt-1 font-mono">
-            Inscribe secure encrypted Research Vaults, parse reference citation indices, review collaborative logs, and launch grounded peer search sessions.
+            Create shared research workspaces, upload papers and web articles, take notes together with your team, and ask AI questions about your documents.
           </p>
         </div>
         {/* <div className="bg-white border-2 border-neo-dark px-3 py-1.5 rounded-sm shadow-[2px_2px_0px_rgba(0,0,0,1)] flex items-center gap-2 self-start md:self-auto">
@@ -240,38 +239,38 @@ export default function DashboardClient() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white border-4 border-neo-dark p-4 rounded-sm shadow-[4px_4px_0px_rgba(0,0,0,1)] text-left flex flex-col justify-between h-28">
           <div>
-            <span className="text-[9px] font-mono font-bold text-stone-500 uppercase tracking-widest block">DAILY SCHOLAR COMPUTE</span>
+            <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-neo-dark block">DAILY AI USAGE</span>
             <div className="flex items-baseline gap-1.5 mt-1">
               <span className="font-display font-black text-2xl text-neo-dark">{dailyComputePercent}%</span>
-              <span className="text-[10px] font-mono text-stone-500">capacity utilized</span>
+              <span className="text-[10px] font-mono text-stone-500">used today</span>
             </div>
           </div>
           <div className="w-full bg-stone-100 border-2 border-neo-dark rounded-full h-3.5 overflow-hidden mt-3 relative">
-            <div className={`${getProgressColor(dailyComputePercent)} h-full border-r-2 border-neo-dark`} style={{ width: `${dailyComputePercent}%` }} />
+            <div className={`${getProgressColor(dailyComputePercent)} h-full`} style={{ width: `${dailyComputePercent}%` }} />
           </div>
         </div>
         <div className="bg-white border-4 border-neo-dark p-4 rounded-sm shadow-[4px_4px_0px_rgba(0,0,0,1)] text-left flex flex-col justify-between h-28">
           <div>
-            <span className="text-[9px] font-mono font-bold text-stone-500 uppercase tracking-widest block">WEEKLY SCHOLAR COMPUTE</span>
+            <span className="text-[9px] font-mono font-bold text-stone-500 uppercase tracking-widest block">WEEKLY AI USAGE</span>
             <div className="flex items-baseline gap-1.5 mt-1">
               <span className="font-display font-black text-2xl text-neo-dark">{weeklyComputePercent}%</span>
-              <span className="text-[10px] font-mono text-stone-500">capacity utilized</span>
+              <span className="text-[10px] font-mono text-stone-500">used this week</span>
             </div>
           </div>
           <div className="w-full bg-stone-100 border-2 border-neo-dark rounded-full h-3.5 overflow-hidden mt-3 relative">
-            <div className={`${getProgressColor(weeklyComputePercent)} h-full border-r-2 border-neo-dark`} style={{ width: `${weeklyComputePercent}%` }} />
+            <div className={`${getProgressColor(weeklyComputePercent)} h-full`} style={{ width: `${weeklyComputePercent}%` }} />
           </div>
         </div>
         <div className="bg-neo-bg border-4 border-neo-dark p-4 pb-4.5 rounded-sm shadow-[4px_4px_0px_rgba(0,0,0,1)] text-left flex flex-col justify-between h-28">
           <div>
-            <span className="text-[9px] font-mono font-bold text-stone-500 uppercase tracking-widest block">CURRENT TIER CAPACITY</span>
+            <span className="text-[9px] font-mono font-bold text-stone-500 uppercase tracking-widest block">YOUR PLAN</span>
             <div className="flex items-center gap-1.5 mt-1.5">
               <span className="font-display font-black text-sm text-neo-dark tracking-tight leading-none">{currentPlan}</span>
               <span className={`text-[8px] font-mono font-bold border border-neo-dark px-1.5 py-0.5 rounded-[6px] uppercase tracking-wide leading-none ${currentPlan === "PRO" ? "bg-neo-yellow" : "bg-neo-yellow"}`}>{currentPlan === "PRO" ? "UNLIMITED" : "LIMITED"}</span>
             </div>
           </div>
           <button onClick={() => router.push("/subscription")} className="w-full py-1 text-[9px] font-mono font-semibold uppercase text-neo-dark bg-white border-2 border-neo-dark rounded-[4px] shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-stone-50 hover:-translate-y-0.5 active:translate-y-0 active:shadow-[1px_1px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-1 cursor-pointer">
-            LAUNCH LIMITS HUB <span className="text-rose-500 font-bold font-sans">⚡</span>
+            VIEW AI LIMITS <span className="text-rose-500 font-bold font-sans"></span>
           </button>
         </div>
       </div>
@@ -287,7 +286,7 @@ export default function DashboardClient() {
                 <div className="w-1 h-3.5 bg-rose-500 rounded-sm" />
                 <div className="w-1 h-3.5 bg-rose-500 rounded-sm" />
               </div>
-              <h3 className="font-display font-black text-xs uppercase tracking-wider text-neo-dark">Vault Nodes Index ({filteredVaults.length})</h3>
+              <h3 className="font-display font-black text-xs uppercase tracking-wider text-neo-dark">Your Vaults ({filteredVaults.length})</h3>
             </div>
             <span className="text-[10px] font-mono font-bold bg-white border-2 border-neo-dark text-neo-dark px-2 py-0.5 rounded-xs shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)] uppercase">Authorized</span>
           </div>
@@ -299,7 +298,7 @@ export default function DashboardClient() {
 
           <div className="space-y-2.5 max-h-[350px] overflow-y-auto pr-1">
             {filteredVaults.length === 0 ? (
-              <p className="text-xs text-stone-400 font-mono italic p-4 text-center">Refine parameters, no ledger matches found.</p>
+              <p className="text-xs text-stone-400 font-mono italic p-4 text-center">No vaults match your search.</p>
             ) : (
               filteredVaults.map((vault) => {
                 const isActive = activeVault && activeVault.id === vault.id;
@@ -321,7 +320,7 @@ export default function DashboardClient() {
                     </div>
                     <div className="space-y-1">
                       <h4 className="font-display font-black text-xs md:text-sm text-neo-dark uppercase truncate flex-1 tracking-tight leading-snug">{vault.name}</h4>
-                      <p className="text-[11px] text-[#6B7280] font-sans font-medium line-clamp-2 leading-relaxed">{vault.description || "Supplemental isolated research ledger indices, with dynamic annotation models and live peer channels."}</p>
+                      <p className="text-[11px] text-[#6B7280] font-sans font-medium line-clamp-2 leading-relaxed">{vault.description || "A shared workspace for research papers, notes, and team discussion."}</p>
                     </div>
                     <div className="flex items-center justify-between w-full pt-1.5 border-t border-dashed border-stone-200">
                       <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[9px] font-mono font-black border-2 border-neo-dark bg-white text-neo-dark rounded-[4px] shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)]">📄 {vault._count?.sources ?? 0} Sources</span>
@@ -339,28 +338,28 @@ export default function DashboardClient() {
           {!showVaultForm ? (
             <button type="button" onClick={() => setShowVaultForm(true)} className="w-full bg-white hover:bg-stone-50 border-4 border-neo-dark p-5 rounded-sm text-center font-display font-black text-xs text-neo-dark uppercase tracking-wider cursor-pointer shadow-[4px_4px_0px_#000] active:translate-y-0.5 active:shadow-[1.5px_1.5px_0px_#000] transition-all flex flex-col items-center justify-center gap-2 block">
               <FolderPlus className="w-6 h-6 text-emerald-600 stroke-[2.5]" />
-              <span>+ Inscribe New Vault</span>
-              <span className="text-[9px] font-mono text-stone-500 font-bold normal-case tracking-tight">Initiate isolated research ledger node</span>
+              <span>+ Create New Vault</span>
+              <span className="text-[9px] font-mono text-stone-500 font-bold normal-case tracking-tight">Set up a new research workspace</span>
             </button>
           ) : (
             <div className="bg-white rounded-sm border-4 border-neo-dark p-4 shadow-[4px_4px_0px_#000] space-y-3.5 text-left">
               <div className="flex items-center justify-between border-b-2 border-neo-dark pb-1.5">
-                <h3 className="font-display font-black text-xs uppercase tracking-wider text-neo-dark flex items-center gap-1.5"><FolderPlus className="w-4 h-4 text-emerald-600" />Inscribe Vault Node</h3>
+                <h3 className="font-display font-black text-xs uppercase tracking-wider text-neo-dark flex items-center gap-1.5"><FolderPlus className="w-4 h-4 text-emerald-600" />Create New Vault</h3>
                 <button type="button" onClick={() => setShowVaultForm(false)} className="text-[10px] font-mono font-bold text-stone-500 hover:text-stone-800 uppercase px-1.5 py-0.5 bg-stone-100 border border-stone-300 rounded cursor-pointer hover:bg-stone-200">Cancel</button>
               </div>
               {errMessage && <p className="text-[10px] font-mono font-bold text-rose-700 bg-rose-50 border border-rose-400 p-2 rounded-sm leading-relaxed">⚠️ {errMessage}</p>}
               {okMessage && <p className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-400 p-2 rounded-sm leading-relaxed">🟢 {okMessage}</p>}
               <form onSubmit={handleCreateVault} className="space-y-3">
                 <div>
-                  <label className="block text-[9px] font-bold font-mono text-stone-600 uppercase mb-1">Vault Name / Parameter designation</label>
-                  <input type="text" required placeholder="e.g. Bio-Informatics Genome Index" value={newVaultName} onChange={(e) => setNewVaultName(e.target.value)} className="w-full text-xs font-sans font-medium p-2 border-2 border-neo-dark rounded-sm focus:outline-none focus:bg-stone-50" />
+                  <label className="block text-[9px] font-bold font-mono text-stone-600 uppercase mb-1">Vault Name</label>
+                  <input type="text" required placeholder="e.g. Climate Research 2025" value={newVaultName} onChange={(e) => setNewVaultName(e.target.value)} className="w-full text-xs font-sans font-medium p-2 border-2 border-neo-dark rounded-sm focus:outline-none focus:bg-stone-50" />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-bold font-mono text-stone-600 uppercase mb-1">Supplemental notes summary</label>
-                  <textarea placeholder="e.g. Molecular sequence analysis..." value={newVaultDesc} onChange={(e) => setNewVaultDesc(e.target.value)} className="w-full text-xs font-sans p-2 border-2 border-neo-dark rounded-sm focus:outline-none focus:bg-stone-50 h-16 resize-none leading-relaxed" />
+                  <label className="block text-[9px] font-bold font-mono text-stone-600 uppercase mb-1">Description (optional)</label>
+                  <textarea placeholder="What is this vault for?" value={newVaultDesc} onChange={(e) => setNewVaultDesc(e.target.value)} className="w-full text-xs font-sans p-2 border-2 border-neo-dark rounded-sm focus:outline-none focus:bg-stone-50 h-16 resize-none leading-relaxed" />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-bold font-mono text-stone-600 uppercase mb-1">Privacy Access vector</label>
+                  <label className="block text-[9px] font-bold font-mono text-stone-600 uppercase mb-1">Visibility</label>
                   <div className="grid grid-cols-2 gap-2 mt-1 select-none">
                     <button type="button" onClick={() => setNewVaultPrivacy("PRIVATE")} className={`py-1.5 px-3 border border-neo-dark font-display font-bold text-[10px] rounded-sm cursor-pointer transition-all ${newVaultPrivacy === "PRIVATE" ? "bg-neo-yellow text-neo-dark font-black shadow-[1px_1px_0px_#0A0A0A]" : "bg-stone-50 hover:bg-stone-100"}`}>Private</button>
                     <button type="button" onClick={() => setNewVaultPrivacy("PUBLIC")} className={`py-1.5 px-3 border border-neo-dark font-display font-bold text-[10px] rounded-sm cursor-pointer transition-all ${newVaultPrivacy === "PUBLIC" ? "bg-neo-yellow text-neo-dark font-black shadow-[1px_1px_0px_#0A0A0A]" : "bg-stone-50 hover:bg-stone-100"}`}>Public</button>
@@ -368,7 +367,7 @@ export default function DashboardClient() {
                 </div>
                 <button type="submit" disabled={creatingVault} className="w-full py-2.5 mt-2 text-xs flex items-center justify-center gap-1.5 cursor-pointer bg-emerald-400 hover:bg-emerald-500 text-neo-dark border-2 font-black border-neo-dark rounded-sm">
                   <Plus className="w-4 h-4 stroke-[3]" />
-                  {creatingVault ? "Allocating context..." : "Inscribe Vault Node"}
+                  {creatingVault ? "Creating..." : "Create Vault"}
                 </button>
               </form>
             </div>
@@ -383,9 +382,9 @@ export default function DashboardClient() {
               <div className="bg-white rounded-sm border-4 border-neo-dark p-4 shadow-[4px_4px_0px_rgba(0,0,0,1)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="text-left">
                   <div className="text-[10px] font-mono text-neo-orange font-bold uppercase flex items-center gap-1.5">
-                    <span>WORKSPACE ANALYSIS NODE</span>
+                    <span>ACTIVE VAULT</span>
                     <span>•</span>
-                    <span className="bg-neo-orange/10 text-neo-orange border border-neo-orange/20 px-1 py-0.5 rounded-sm">{activeVault.privacy} Clearance</span>
+                    <span className="bg-neo-orange/10 text-neo-orange border border-neo-orange/20 px-1 py-0.5 rounded-sm">{activeVault.privacy}</span>
                   </div>
                   <h2 className="font-display font-black text-lg tracking-tight text-neo-dark mt-1 flex items-center gap-2 uppercase">
                     {activeVault.privacy === "PRIVATE" ? <LockKeyhole className="w-5 h-5 text-rose-500" /> : <Globe className="w-5 h-5 text-emerald-500" />}
@@ -890,7 +889,7 @@ function AnnotationsTab({ vaultId, sources, onNavigateToSource, onNavigateToWork
       <div className="flex items-center justify-between px-5 py-4 border-b-2 border-neo-dark bg-stone-50">
         <h3 className="font-display font-black text-sm uppercase tracking-wider text-neo-dark flex items-center gap-1.5">
           <BookOpenCheck className="w-5 h-5 text-neo-orange" />
-          Unified Annotations Index
+          Annotations
         </h3>
         <span className="text-[10px] font-mono font-black bg-neo-yellow border-2 border-neo-dark px-2 py-0.5 rounded-sm shadow-[1.5px_1.5px_0px_#000]">
           {totalAnnotations} total
@@ -1014,7 +1013,7 @@ function AuditTab({ auditLogs, auditLogsData, auditPage, setAuditPage, auditType
       <div className="flex justify-between items-center border-b-2 border-stone-200 pb-2 bg-stone-50 px-2 py-1.5 rounded border border-neo-dark flex-wrap gap-2">
         <h3 className="font-display font-black text-xs uppercase tracking-wider text-neo-dark flex items-center gap-1.5">
           <History className="w-4 h-4 text-rose-500 animate-[spin_4s_linear_infinite]" />
-          Vault audit chronology
+          Vault Activity Log
         </h3>
 
         {/* Pager */}
@@ -1060,13 +1059,13 @@ function AuditTab({ auditLogs, auditLogsData, auditPage, setAuditPage, auditType
             }}
             className="w-full text-xs p-1.5 border-2 border-neo-dark rounded bg-white font-mono focus:outline-none cursor-pointer"
           >
-            <option value="ALL">ALL PROCESSES</option>
-            <option value="VAULT">VAULT SECURE BOUNDS</option>
-            <option value="MEMBER">PERSONNEL & MEMBERS</option>
-            <option value="FILE">FILE UPLOADS</option>
-            <option value="SOURCE">SOURCE RESEARCH NODES</option>
-            <option value="ANNOTATION">ANNOTATION & COMMENTS</option>
-            <option value="CITATION">CITATION FORMATS</option>
+          <option value="ALL">All activity</option>
+            <option value="VAULT">Vault changes</option>
+            <option value="MEMBER">Members</option>
+            <option value="FILE">File uploads</option>
+            <option value="SOURCE">Sources</option>
+            <option value="ANNOTATION">Annotations</option>
+            <option value="CITATION">Citations</option>
           </select>
         </div>
 
@@ -1120,7 +1119,7 @@ function AuditTab({ auditLogs, auditLogsData, auditPage, setAuditPage, auditType
       {/* Log entries */}
       <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1 select-none text-[11px] font-mono">
         {auditLogs.length === 0 ? (
-          <p className="text-xs text-stone-400 font-mono italic p-4 text-center">No visual audit logs indexed.</p>
+          <p className="text-xs text-stone-400 font-mono italic p-4 text-center">No activity recorded yet.</p>
         ) : (
           auditLogs.map((log: any) => {
             let borderCol = "border-l-indigo-500 bg-indigo-50/10";
@@ -1221,10 +1220,10 @@ function VaultSettingsTab({
             <div className="text-left">
               <span className="text-[9px] font-mono uppercase font-bold text-stone-500 block leading-none">Settings Tab</span>
               <span className="font-display font-black text-xs uppercase tracking-tight text-neo-dark">
-                {activeSettingsSubTab === "general" && "General Settings"}
-                {activeSettingsSubTab === "guidelines" && "Researcher Guidelines"}
-                {activeSettingsSubTab === "idcard" && "Vault Researcher ID Card"}
-                {activeSettingsSubTab === "admin" && "Admin Ledger"}
+                {activeSettingsSubTab === "general" && "General"}
+                {activeSettingsSubTab === "guidelines" && "Permissions"}
+                {activeSettingsSubTab === "idcard" && "Your Passport"}
+                {activeSettingsSubTab === "admin" && "Admin"}
               </span>
             </div>
           </div>
@@ -1241,10 +1240,10 @@ function VaultSettingsTab({
         {mobileSidebarOpen && (
           <div className="pt-2 border-t-2 border-dashed border-stone-200 grid grid-cols-1 gap-1.5">
             {[
-              { id: "general", icon: <Bell className="w-4 h-4 shrink-0" />, label: "General Settings" },
-              { id: "guidelines", icon: <ShieldCheck className="w-4 h-4 shrink-0" />, label: "Clearance / Guidelines" },
-              { id: "idcard", icon: <Fingerprint className="w-4 h-4 shrink-0" />, label: "Researcher ID Card" },
-              ...(activeVault.myRole === "OWNER" ? [{ id: "admin", icon: <LockKeyhole className="w-4 h-4 shrink-0" />, label: "Admin Ledger Node" }] : []),
+              { id: "general", icon: <Bell className="w-4 h-4 shrink-0" />, label: "General" },
+              { id: "guidelines", icon: <ShieldCheck className="w-4 h-4 shrink-0" />, label: "Permissions" },
+              { id: "idcard", icon: <Fingerprint className="w-4 h-4 shrink-0" />, label: "Your Passport" },
+              ...(activeVault.myRole === "OWNER" ? [{ id: "admin", icon: <LockKeyhole className="w-4 h-4 shrink-0" />, label: "Admin" }] : []),
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1271,7 +1270,7 @@ function VaultSettingsTab({
             {!settingsSidebarCollapsed ? (
               <div className="text-left">
                 <h3 className="font-display font-black text-xs uppercase tracking-wider text-neo-dark">Vault Settings</h3>
-                <p className="text-[9px] font-mono text-stone-400 font-bold leading-none mt-1 uppercase">{activeVault.myRole || "OWNER"} clearance</p>
+                <p className="text-[9px] font-mono text-stone-400 font-bold leading-none mt-1 uppercase">Your role: {activeVault.myRole || "OWNER"}</p>
               </div>
             ) : (
               <span className="mx-auto p-1 bg-stone-50 border-2 border-neo-dark rounded text-stone-600">
@@ -1282,10 +1281,10 @@ function VaultSettingsTab({
 
           <div className="space-y-2 flex-1 relative z-10">
             {[
-              { id: "general", icon: <Bell className="w-4 h-4 shrink-0" />, label: "General Settings" },
-              { id: "guidelines", icon: <ShieldCheck className="w-4 h-4 shrink-0" />, label: "Clearance & Rules" },
-              { id: "idcard", icon: <Fingerprint className="w-4 h-4 shrink-0" />, label: "Vault ID Passport" },
-              ...(activeVault.myRole === "OWNER" ? [{ id: "admin", icon: <LockKeyhole className="w-4 h-4 shrink-0" />, label: "Admin Configuration" }] : []),
+              { id: "general", icon: <Bell className="w-4 h-4 shrink-0" />, label: "General" },
+              { id: "guidelines", icon: <ShieldCheck className="w-4 h-4 shrink-0" />, label: "Permissions" },
+              { id: "idcard", icon: <Fingerprint className="w-4 h-4 shrink-0" />, label: "Your Passport" },
+              ...(activeVault.myRole === "OWNER" ? [{ id: "admin", icon: <LockKeyhole className="w-4 h-4 shrink-0" />, label: "Admin" }] : []),
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1329,7 +1328,7 @@ function VaultSettingsTab({
                   General Preferences
                 </h3>
                 <span className="text-[9px] font-mono font-bold px-2 py-0.5 border-2 border-neo-dark rounded bg-neo-yellow text-neo-dark uppercase shadow-[1px_1px_0px_#000]">
-                  {activeVault.myRole || "OWNER"} clearance
+                  Your role: {activeVault.myRole || "OWNER"}
                 </span>
               </div>
 
@@ -1366,12 +1365,12 @@ function VaultSettingsTab({
                         onClick={() => setConfirmExitVault(true)}
                         className="w-full py-2.5 bg-rose-100 hover:bg-rose-200 border-2 border-neo-dark text-rose-950 font-display font-black text-xs uppercase tracking-wider rounded-xs shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-[1px_1px_0px_#000] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                       >
-                        <Trash2 className="w-4 h-4 text-rose-700 stroke-[2.5]" />
-                        Exit Research Vault Node
+                      <Trash2 className="w-4 h-4 text-rose-700 stroke-[2.5]" />
+                        Leave This Vault
                       </button>
                     ) : (
                       <div className="p-3 bg-rose-50 border-2 border-rose-500 rounded space-y-2.5">
-                        <p className="text-[10px] text-stone-700 font-medium leading-relaxed font-mono">⚠️ WARNING: You are leaving this vault bounds. You will lose access to all its citations, comments, and collaborative room logs.</p>
+                        <p className="text-[10px] text-stone-700 font-medium leading-relaxed font-mono">⚠️ You are about to leave this vault. You will lose access to all its sources, notes, and chat history.</p>
                         <div className="flex gap-2">
                           <button type="button" onClick={handleExitVault} className="flex-1 py-1.5 bg-rose-600 hover:bg-rose-700 text-white border-2 border-neo-dark text-[10px] font-mono font-black uppercase rounded shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 cursor-pointer">Confirm Exit</button>
                           <button type="button" onClick={() => setConfirmExitVault(false)} className="flex-1 py-1.5 bg-white hover:bg-stone-100 text-stone-700 border-2 border-neo-dark text-[10px] font-mono font-bold uppercase rounded shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 cursor-pointer">Cancel</button>
@@ -1383,8 +1382,8 @@ function VaultSettingsTab({
                   <div className="p-4 bg-amber-50 border-2 border-neo-dark rounded-sm flex items-start gap-3 shadow-[2.5px_2.5px_0px_#000]">
                     <LockKeyhole className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 stroke-[2.5]" />
                     <div className="space-y-1">
-                      <h4 className="font-display font-black text-xs text-amber-950 uppercase tracking-wide">Owner accounts cannot leave</h4>
-                      <p className="text-[11px] text-stone-600 font-sans font-semibold leading-relaxed">As the vault owner, you cannot exit this vault. To remove it permanently, use Delete Vault in the Admin tab.</p>
+                      <h4 className="font-display font-black text-xs text-amber-950 uppercase tracking-wide">Owners cannot leave a vault</h4>
+                      <p className="text-[11px] text-stone-600 font-sans font-semibold leading-relaxed">You created this vault, so you cannot leave it. To remove it entirely, use Delete Vault in the Admin tab.</p>
                     </div>
                   </div>
                 )}
@@ -1403,40 +1402,40 @@ function VaultSettingsTab({
               </div>
               <div className="space-y-4 leading-relaxed">
                 <p className="font-bold text-neo-dark text-xs">
-                  You are authorized in this vault under clearance:{" "}
+                  Your role in this vault:{" "}
                   <span className="bg-neo-yellow border-2 border-neo-dark px-1.5 py-0.5 rounded text-[10px] font-black">{activeVault.myRole || "OWNER"}</span>.
                 </p>
                 <div className="p-3.5 bg-stone-50 border-2 border-neo-dark rounded space-y-2 shadow-[2px_2px_0px_#000]">
                   <div className="font-bold text-stone-800 uppercase text-[9px] font-mono flex items-center gap-1.5">
                     <Crown className="w-3.5 h-3.5 text-amber-500" />
-                    {activeVault.myRole === "OWNER" ? "Admin Owner Permissions List" : activeVault.myRole === "CONTRIBUTOR" ? "Editor Permissions List" : "Viewer Permissions List"}
+                    {activeVault.myRole === "OWNER" ? "Owner permissions" : activeVault.myRole === "CONTRIBUTOR" ? "Contributor permissions" : "Viewer permissions"}
                   </div>
                   <p className="text-stone-500 font-semibold font-sans text-[11px] leading-relaxed select-text">
                     {activeVault.myRole === "OWNER"
-                      ? "As the Owner (Creator), you possess supreme cryptographic bounds, holding unilateral authorization to index original sources, edit metadata bounds, dismantle nodes, and manage investigator clearances."
+                      ? "As the Owner, you have full control — you can add or delete sources, write and edit notes, manage members, configure vault settings, and delete the vault."
                       : activeVault.myRole === "CONTRIBUTOR"
-                      ? "As a Contributor (Editor), you have full authorization to compile citations sources indices, register comments annotations, invoke peer collaboration overlays, and consult grounding inquiry models."
-                      : "As a Viewer, your node clearance allows read-only examination. You can view all processed annotations entries, consult grounded Q/A summaries, read chat colloquia, and review secure audit chronological registries."}
+                      ? "As a Contributor, you can add and edit sources, write notes, use AI features, and participate in chat. You cannot change vault settings or manage members."
+                      : "As a Viewer, you have read-only access. You can read notes, view AI summaries, follow the chat, and browse the activity log. You cannot add or edit anything."}
                   </p>
                 </div>
                 <div className="space-y-2 pt-2">
-                  <h4 className="font-display font-black text-[10px] uppercase tracking-wider text-stone-500">Security Clearance Bounds</h4>
+                  <h4 className="font-display font-black text-[10px] uppercase tracking-wider text-stone-500">What you can do</h4>
                   <div className="space-y-2 border-2 border-neo-dark p-3 bg-stone-50 rounded shadow-[2px_2px_0px_#000]">
                     {[
-                      { label: "Citations adding/editing", allowed: activeVault.myRole === "OWNER" || activeVault.myRole === "CONTRIBUTOR" },
-                      { label: "Annotating reference sheets", allowed: activeVault.myRole === "OWNER" || activeVault.myRole === "CONTRIBUTOR" },
-                      { label: "Inviting new personnel", allowed: activeVault.myRole === "OWNER", restricted: "Admin Only" },
-                      { label: "Archiving / Dismantling", allowed: activeVault.myRole === "OWNER", restricted: "Admin Only" },
+                      { label: "Add or edit sources", allowed: activeVault.myRole === "OWNER" || activeVault.myRole === "CONTRIBUTOR" },
+                      { label: "Write and edit notes", allowed: activeVault.myRole === "OWNER" || activeVault.myRole === "CONTRIBUTOR" },
+                      { label: "Invite members", allowed: activeVault.myRole === "OWNER", restricted: "Owner only" },
+                      { label: "Delete vault", allowed: activeVault.myRole === "OWNER", restricted: "Owner only" },
                     ].map((row) => (
                       <div key={row.label} className="flex items-center justify-between py-1 border-b border-stone-200 last:border-0 flex-wrap gap-1">
                         <span className="font-sans font-bold text-stone-700 text-[11px]">{row.label}</span>
                         {row.allowed ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-neo-dark bg-emerald-100 text-emerald-950 font-display font-black text-[9px] uppercase shadow-[1px_1px_0px_#000]">
-                            <Check className="w-2.5 h-2.5 stroke-[3]" /> Authorized
+                            <Check className="w-2.5 h-2.5 stroke-[3]" /> Allowed
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-neo-dark bg-rose-100 text-rose-950 font-display font-black text-[9px] uppercase shadow-[1px_1px_0px_#000]">
-                            <Lock className="w-2.5 h-2.5" /> {row.restricted || "Unauthorized"}
+                            <Lock className="w-2.5 h-2.5" /> {row.restricted || "Not allowed"}
                           </span>
                         )}
                       </div>
@@ -1454,9 +1453,9 @@ function VaultSettingsTab({
                 <div className="space-y-1">
                   <h3 className="font-display font-black text-sm uppercase tracking-wider text-neo-dark flex items-center gap-1.5">
                     <Fingerprint className="w-5 h-5 text-emerald-600 stroke-[2.5]" />
-                    Identity & Clearance Passport
+                    Your Vault Passport
                   </h3>
-                  <p className="text-[11px] text-stone-500 font-sans font-medium">Your digital vault credentials and unique researcher passport for this vault.</p>
+                  <p className="text-[11px] text-stone-500 font-sans font-medium">Your membership card for this vault, with a unique QR code you can share or scan to verify.</p>
                 </div>
                 <span className="text-[9px] font-mono font-bold px-2 py-1 bg-emerald-100 border-2 border-neo-dark rounded text-emerald-950 uppercase shadow-[1.5px_1.5px_0px_#000]">Active Vault Passport</span>
               </div>
@@ -1491,7 +1490,7 @@ function VaultSettingsTab({
                     <Edit3 className="w-4 h-4 text-neo-dark stroke-[2.5]" />
                     <span>Edit Passport</span>
                   </button>
-                  <p className="text-[10px] text-stone-400 font-mono text-center">Update your vault alias, specialization, and motto. Scan the QR code to verify membership.</p>
+                  <p className="text-[10px] text-stone-400 font-mono text-center">Update your vault alias, role title, and motto. The QR code links to your public verification page.</p>
                 </div>
               </div>
             </div>
@@ -1502,44 +1501,44 @@ function VaultSettingsTab({
             <div className="bg-white rounded-sm border-4 border-neo-dark p-5 shadow-[4px_4px_0px_#000] space-y-4 text-left">
               <h3 className="font-display font-black text-sm uppercase tracking-wider text-neo-dark border-b-2 border-stone-200 pb-2 flex items-center gap-1.5">
                 <Settings className="w-5 h-5 text-rose-500" />
-                Admin Vault Configuration
+                Vault Settings
               </h3>
 
               <form onSubmit={handleUpdateVaultSettings} className="space-y-4">
                 <div>
-                  <label className="block text-[9px] font-bold font-mono text-stone-600 uppercase mb-1">Vault Nomenclature (Name)</label>
+                  <label className="block text-[9px] font-bold font-mono text-stone-600 uppercase mb-1">Vault Name</label>
                   <input type="text" required value={editVaultName} onChange={(e) => setEditVaultName(e.target.value)} className="w-full text-xs font-sans font-black p-2 border-2 border-neo-dark bg-stone-50 rounded focus:outline-none focus:bg-white" />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-bold font-mono text-stone-600 uppercase mb-1">Ledger Abstract (Description)</label>
+                  <label className="block text-[9px] font-bold font-mono text-stone-600 uppercase mb-1">Description</label>
                   <textarea value={editVaultDesc} onChange={(e) => setEditVaultDesc(e.target.value)} className="w-full text-xs font-mono p-2 border-2 border-neo-dark bg-stone-50 rounded focus:outline-none focus:bg-white h-24 resize-none leading-relaxed" />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-bold font-mono text-stone-600 uppercase mb-1">Vessel Privacy Access</label>
+                  <label className="block text-[9px] font-bold font-mono text-stone-600 uppercase mb-1">Visibility</label>
                   <div className="grid grid-cols-2 gap-2 mt-1 select-none">
-                    <button type="button" onClick={() => setEditVaultPrivacy("PRIVATE")} className={`py-1.5 px-3 border border-neo-dark font-display font-bold text-[10px] rounded-xs cursor-pointer transition-all ${editVaultPrivacy === "PRIVATE" ? "bg-neo-yellow text-neo-dark font-black shadow-[1px_1.5px_0px_#0A0A0A]" : "bg-stone-50 hover:bg-stone-100"}`}>Private Bounds</button>
-                    <button type="button" onClick={() => setEditVaultPrivacy("PUBLIC")} className={`py-1.5 px-3 border border-neo-dark font-display font-bold text-[10px] rounded-xs cursor-pointer transition-all ${editVaultPrivacy === "PUBLIC" ? "bg-neo-yellow text-neo-dark font-black shadow-[1px_1.5px_0px_#0A0A0A]" : "bg-stone-50 hover:bg-stone-100"}`}>Public Clearance</button>
+                    <button type="button" onClick={() => setEditVaultPrivacy("PRIVATE")} className={`py-1.5 px-3 border border-neo-dark font-display font-bold text-[10px] rounded-xs cursor-pointer transition-all ${editVaultPrivacy === "PRIVATE" ? "bg-neo-yellow text-neo-dark font-black shadow-[1px_1.5px_0px_#0A0A0A]" : "bg-stone-50 hover:bg-stone-100"}`}>Private</button>
+                    <button type="button" onClick={() => setEditVaultPrivacy("PUBLIC")} className={`py-1.5 px-3 border border-neo-dark font-display font-bold text-[10px] rounded-xs cursor-pointer transition-all ${editVaultPrivacy === "PUBLIC" ? "bg-neo-yellow text-neo-dark font-black shadow-[1px_1.5px_0px_#0A0A0A]" : "bg-stone-50 hover:bg-stone-100"}`}>Public</button>
                   </div>
                 </div>
                 <button type="submit" disabled={updatingVaultSettings} className="w-full py-2.5 bg-teal-400 hover:bg-teal-500 border-2 border-neo-dark text-neo-dark font-display font-black text-xs uppercase tracking-wider rounded shadow-[3px_3px_0px_#000] active:translate-y-0.5 active:shadow-[1px_1px_0px_#000] transition-all flex items-center justify-center gap-1.5 cursor-pointer">
-                  {updatingVaultSettings ? "Processing..." : "Commit Administrative Upgrades"}
+                  {updatingVaultSettings ? "Saving..." : "Save Changes"}
                 </button>
               </form>
 
-              {/* Dismantle */}
+              {/* Delete vault */}
               <div className="pt-4 border-t-2 border-dashed border-stone-200 mt-2">
-                <h4 className="text-[10px] uppercase font-black text-rose-800 font-mono mb-1">Dismantle Node Bounds</h4>
-                <p className="text-[10px] text-stone-400 font-sans mb-3 font-medium">Permanently wipe this vault's archives, annotations reference library, and chat records from the nodes index.</p>
+                <h4 className="text-[10px] uppercase font-black text-rose-800 font-mono mb-1">Delete Vault</h4>
+                <p className="text-[10px] text-stone-400 font-sans mb-3 font-medium">Permanently delete this vault and all its sources, notes, and chat history. This cannot be undone.</p>
                 {!confirmDeleteVault ? (
                   <button type="button" onClick={() => setConfirmDeleteVault(true)} className="w-full py-2 bg-stone-100 hover:bg-rose-100 text-rose-700 border-2 border-rose-400 font-mono font-bold text-[10px] uppercase tracking-wider rounded cursor-pointer text-center">
-                    Dismantle Vault Ledger Node
+                    Delete This Vault
                   </button>
                 ) : (
                   <div className="p-3 bg-stone-50 border-2 border-rose-500 rounded space-y-2.5">
-                    <p className="text-[10px] text-stone-800 font-bold leading-relaxed font-mono text-center uppercase">🚨 CONFIRM COMPLETE DISMANTLING? THIS CANNOT BE REVERTED.</p>
+                    <p className="text-[10px] text-stone-800 font-bold leading-relaxed font-mono text-center uppercase">🚨 Are you sure? This cannot be undone.</p>
                     <div className="flex gap-2">
-                      <button type="button" onClick={handleDeleteVault} className="flex-1 py-1.5 bg-rose-600 hover:bg-rose-700 text-white border-2 border-neo-dark text-[10px] font-mono font-black uppercase rounded shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 cursor-pointer">Yes, Melt Node</button>
-                      <button type="button" onClick={() => setConfirmDeleteVault(false)} className="flex-1 py-1.5 bg-white hover:bg-stone-100 text-stone-700 border-2 border-neo-dark text-[10px] font-mono font-bold uppercase rounded shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 cursor-pointer">Abandon</button>
+                      <button type="button" onClick={handleDeleteVault} className="flex-1 py-1.5 bg-rose-600 hover:bg-rose-700 text-white border-2 border-neo-dark text-[10px] font-mono font-black uppercase rounded shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 cursor-pointer">Yes, delete it</button>
+                      <button type="button" onClick={() => setConfirmDeleteVault(false)} className="flex-1 py-1.5 bg-white hover:bg-stone-100 text-stone-700 border-2 border-neo-dark text-[10px] font-mono font-bold uppercase rounded shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 cursor-pointer">Cancel</button>
                     </div>
                   </div>
                 )}

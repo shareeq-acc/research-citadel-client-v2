@@ -153,13 +153,13 @@ export const SourceDetailPage: React.FC<SourceDetailPageProps> = ({
                   onClick={() => handleTriggerQAProcess(activeSource.id)}
                   className="bg-neo-orange border-2 border-neo-dark text-white shadow-[1.5px_1.5px_0px_#0A0A0A] font-bold font-display px-3 py-1.5 text-xs cursor-pointer hover:-translate-y-0.5 transition-transform shrink-0"
                 >
-                  🚀 Process for QA Index
+                  Process for QA 
                 </button>
               ) : (
                 <span className="text-[10px] font-mono font-black uppercase bg-emerald-50/90 text-emerald-950 border-2 border-neo-dark px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-sm shadow-[1.5px_1.5px_0px_#000] flex items-center gap-1.5 select-none shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse border border-emerald-700 shrink-0" />
                   <span>
-                    <span className="hidden sm:inline">Grounded &amp; Semantic </span>Indexed
+                    <span className="hidden sm:inline">Processed for QA </span>Indexed
                   </span>
                 </span>
               )}

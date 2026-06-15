@@ -22,7 +22,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="w-16 h-16 bg-neo-yellow border-4 border-neo-dark flex items-center justify-center mx-auto shadow-[4px_4px_0px_#000] animate-pulse">
             {/* <span className="text-2xl">🔐</span> */}
           </div>
-          <p className="font-mono font-black text-xs uppercase tracking-widest text-neo-dark">Verifying Credentials...</p>
+          <p className="font-mono font-black text-xs uppercase tracking-widest text-neo-dark">Application Loading...</p>
         </div>
       </div>
     );

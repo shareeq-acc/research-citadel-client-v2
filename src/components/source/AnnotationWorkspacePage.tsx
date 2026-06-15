@@ -5,7 +5,7 @@ import { Source, Vault, Annotation } from "@/types";
 import { RenderUserAvatar } from "@/components/RenderUserAvatar";
 import MarkdownRenderer from "@/components/shared/MarkdownRenderer";
 import {
-  FileText, Edit3, PlusCircle, Info, Check, BookOpen, Eye, ArrowRightLeft,
+  FileText, Edit3, PlusCircle, Info, Check, BookOpen, Eye,
   Folder, Terminal, Cpu, Sparkles, ChevronDown, ChevronRight, Compass,
   Award, StickyNote, ArrowUpRight
 } from "lucide-react";
@@ -20,11 +20,6 @@ interface AnnotationWorkspacePageProps {
   conflictResult: any | null;
   setConflictResult: (v: any) => void;
   workspacePresenceList: any[];
-  simulateCollaborators: boolean;
-  setSimulateCollaborators: (v: boolean) => void;
-  collaboratorEditSimulating: boolean;
-  collaboratorEditSimulatedMessage: string | null;
-  setCollaboratorEditSimulatedMessage: (v: string) => void;
   workspacePageRef: string;
   setWorkspacePageRef: (v: string) => void;
   workspaceSectionRef: string;
@@ -37,7 +32,6 @@ interface AnnotationWorkspacePageProps {
   loadVaultDetail: (id: string) => void;
   loadSourceDetail: (id: string) => void;
   handleSaveWorkspace: () => void;
-  handleSimulateCollaboratorConflict: () => void;
   handleAIEnhanceWorkspace: () => void;
   handleRevertAIWorkspace: () => void;
   workspaceRefPaneTab: "summary" | "insights" | "annotations" | "document";
@@ -56,11 +50,6 @@ export const AnnotationWorkspacePage: React.FC<AnnotationWorkspacePageProps> = (
   conflictResult,
   setConflictResult,
   workspacePresenceList,
-  simulateCollaborators,
-  setSimulateCollaborators,
-  collaboratorEditSimulating,
-  collaboratorEditSimulatedMessage,
-  setCollaboratorEditSimulatedMessage,
   workspacePageRef,
   setWorkspacePageRef,
   workspaceSectionRef,
@@ -73,7 +62,6 @@ export const AnnotationWorkspacePage: React.FC<AnnotationWorkspacePageProps> = (
   loadVaultDetail,
   loadSourceDetail,
   handleSaveWorkspace,
-  handleSimulateCollaboratorConflict,
   handleAIEnhanceWorkspace,
   handleRevertAIWorkspace,
   workspaceRefPaneTab,
@@ -277,66 +265,9 @@ export const AnnotationWorkspacePage: React.FC<AnnotationWorkspacePageProps> = (
               </div>
             </div>
 
-            {/* Right: Interactive Simulator Controls */}
-            <div className="flex flex-wrap items-center gap-3 bg-white border-2 border-neo-dark p-2 rounded-sm shrink-0 shadow-[1.5px_1.5px_0px_#000]">
-              <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={simulateCollaborators}
-                  onChange={(e) => setSimulateCollaborators(e.target.checked)}
-                  className="form-checkbox text-neo-dark rounded-none border-2 border-neo-dark focus:ring-0 cursor-pointer h-3.5 w-3.5 bg-white checked:bg-neo-dark accent-neo-dark"
-                />
-                <span className="text-[10px] font-black font-mono text-stone-700 uppercase">Mock Co-scholars</span>
-              </label>
-
-              {/* Big conflict simulator button - only shown when editing */}
-              {editingAnnotation && (
-                <div className="border-l-2 border-stone-300 pl-2.5 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleSimulateCollaboratorConflict}
-                    disabled={collaboratorEditSimulating}
-                    className="bg-red-50 hover:bg-red-100 text-red-700 border-2 border-neo-dark rounded-xs px-2.5 py-1 text-[9px] font-black font-mono uppercase tracking-wider cursor-pointer transition-all active:translate-y-0.5 shadow-[1.5px_1.5px_0px_#000] disabled:opacity-50"
-                    title="Force Prof. Adrian Carter to save an edit on the server directly to test interactive merge resolutions."
-                  >
-                    {collaboratorEditSimulating ? "Simulating..." : "Simulate Conflict Edit"}
-                  </button>
-                </div>
-              )}
-            </div>
+            {/* Right: placeholder for future controls */}
+            <div className="shrink-0" />
           </div>
-
-          {/* Conflict notice alert */}
-          {collaboratorEditSimulatedMessage && (
-            <div className="mb-4 p-3.5 bg-[#FFFBEB] border-2 border-neo-dark text-xs text-neo-dark font-mono rounded-sm flex flex-col md:flex-row md:items-center justify-between gap-3.5 shrink-0 shadow-[3px_3px_0px_#000] select-none transition-all">
-              <div className="flex items-start md:items-center gap-3">
-                <span className="p-1.5 bg-[#FEF3C7] border-2 border-neo-dark rounded-xs shadow-[1.5px_1.5px_0px_#000] text-black shrink-0 flex items-center justify-center">
-                  <ArrowRightLeft className="w-4 h-4 text-neo-dark animate-pulse stroke-[2.5]" />
-                </span>
-                <div className="flex flex-col gap-1 text-stone-850">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="bg-[#FFE4E6] text-black border-2 border-neo-dark font-mono font-black text-[8px] uppercase px-1.5 py-0.5 rounded-xs shadow-[1px_1px_0px_#000] tracking-wider">
-                      Conflict Simulation
-                    </span>
-                    <span className="text-[10px] font-black text-stone-700 uppercase tracking-wide font-sans">
-                      Co-Scholar Update
-                    </span>
-                  </div>
-                  <span className="text-stone-800 font-medium leading-relaxed font-sans">
-                    {collaboratorEditSimulatedMessage.startsWith("⚡ ") 
-                      ? collaboratorEditSimulatedMessage.substring(2) 
-                      : collaboratorEditSimulatedMessage}
-                  </span>
-                </div>
-              </div>
-              <button 
-                onClick={() => setCollaboratorEditSimulatedMessage("")} 
-                className="self-end md:self-auto px-2.5 py-1 bg-white hover:bg-stone-100 border-2 border-neo-dark font-black font-mono text-[10px] uppercase rounded-xs cursor-pointer shadow-[1.5px_1.5px_0px_#000] active:translate-y-0.5 transition-all text-neo-dark"
-              >
-                Dismiss
-              </button>
-            </div>
-          )}
 
           {/* Reference locations */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-3.5 border-b-2 border-stone-200 shrink-0 mb-3 bg-[#FAF7F2] p-3 rounded-xs border-2 border-neo-dark shadow-[2px_2px_0px_#000]">

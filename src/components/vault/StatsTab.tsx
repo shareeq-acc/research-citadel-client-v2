@@ -89,11 +89,11 @@ export default function StatsTab({ vaultId, members, auditData }: StatsTabProps)
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-4 rounded neo-border neo-shadow-sm flex items-center justify-between">
           <div>
-            <div className="text-xs font-mono font-bold text-stone-500 uppercase">Total Activity Count</div>
+            <div className="text-xs font-mono font-bold text-stone-500 uppercase">Total Actions</div>
             <div className="text-4xl font-display font-extrabold mt-1 text-neo-dark">
               {loading ? "..." : totalContributions}
             </div>
-            <p className="text-[10px] text-stone-500 mt-1 font-sans">Accumulated commits & annotation modifications</p>
+            <p className="text-[10px] text-stone-500 mt-1 font-sans">Sources added, notes written, and edits made</p>
           </div>
           <div className="bg-neo-yellow p-3 rounded-sm border-2 border-neo-dark text-neo-dark shadow-[2px_2px_0px_#0A0A0A]">
             <Zap className="w-6 h-6" />
@@ -102,11 +102,11 @@ export default function StatsTab({ vaultId, members, auditData }: StatsTabProps)
 
         <div className="bg-white p-4 rounded neo-border neo-shadow-sm flex items-center justify-between">
           <div>
-            <div className="text-xs font-mono font-bold text-stone-500 uppercase">Contributors Count</div>
+            <div className="text-xs font-mono font-bold text-stone-500 uppercase">Members</div>
             <div className="text-4xl font-display font-extrabold mt-1 text-neo-dark">
               {members.length}
             </div>
-            <p className="text-[10px] text-stone-500 mt-1 font-sans">With permissions: Owner / Contributors</p>
+            <p className="text-[10px] text-stone-500 mt-1 font-sans">Owners and contributors in this vault</p>
           </div>
           <div className="bg-neo-accent p-3 rounded-sm border-2 border-neo-dark text-neo-dark shadow-[2px_2px_0px_#0A0A0A]">
             <Users className="w-6 h-6" />
@@ -120,7 +120,7 @@ export default function StatsTab({ vaultId, members, auditData }: StatsTabProps)
               {loading ? "..." : (topContributor ? topContributor.user.name : "N/A")}
             </div>
             <p className="text-[10px] text-stone-500 mt-1 font-sans">
-              {topContributor ? `${topContributor.totalCount} active contributions` : "No registered commits yet"}
+              {topContributor ? `${topContributor.totalCount} actions recorded` : "No activity yet"}
             </p>
           </div>
           <div className="bg-neo-orange p-3 rounded-sm border-2 border-neo-dark text-white shadow-[2px_2px_0px_#0A0A0A]">
@@ -143,11 +143,11 @@ export default function StatsTab({ vaultId, members, auditData }: StatsTabProps)
                 Contribution Heatmap
               </h3>
               <span className="text-[9px] font-mono font-bold bg-[#FAFAF9] px-2 py-0.5 border border-neo-dark text-stone-600 rounded">
-                12-Week Activity
+                12 Weeks
               </span>
             </div>
             <p className="text-stone-500 text-xs mb-4 font-sans">
-              Real-time daily activities commits track record logged over the last 12 weeks.
+              Daily activity over the last 12 weeks.
             </p>
           </div>
 
@@ -166,7 +166,7 @@ export default function StatsTab({ vaultId, members, auditData }: StatsTabProps)
                   {formatDateFriendly(hoveredCell.date)}
                 </div>
                 <div className="text-[10px] mt-0.5 text-stone-100">
-                  {hoveredCell.count === 0 ? "No" : hoveredCell.count} activity/activities
+                {hoveredCell.count === 0 ? "No activity" : `${hoveredCell.count} action${hoveredCell.count !== 1 ? "s" : ""}`}
                 </div>
                 {/* Tooltip pointer notch */}
                 <div className="w-1.5 h-1.5 bg-neo-dark border-r-2 border-b-2 border-neo-dark rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2" />
@@ -278,14 +278,14 @@ export default function StatsTab({ vaultId, members, auditData }: StatsTabProps)
                 <div className="p-1.5 bg-[#00D4AA] border-2 border-neo-dark rounded shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)] flex items-center justify-center">
                   <TrendingUp className="w-4 h-4 text-neo-dark stroke-[2.5]" />
                 </div>
-                Contribution Curves
+                Activity by Member
               </h3>
               <span className="text-[9px] font-mono font-bold bg-[#FAFAF9] px-2 py-0.5 border border-neo-dark text-stone-600 rounded">
-                SVG RENDER
+                Bar Chart
               </span>
             </div>
             <p className="text-stone-500 text-xs mb-3 font-sans">
-              Technical share index score per active workspace researcher.
+              Total actions per member in this vault.
             </p>
           </div>
 
@@ -297,7 +297,7 @@ export default function StatsTab({ vaultId, members, auditData }: StatsTabProps)
             </div>
           ) : userStats.length === 0 ? (
             <div className="h-40 flex items-center justify-center text-xs italic text-stone-400">
-              No contributions curves to map.
+              No activity to show yet.
             </div>
           ) : (
             <div className="chart-container relative w-full">
@@ -312,7 +312,7 @@ export default function StatsTab({ vaultId, members, auditData }: StatsTabProps)
                   }}
                 >
                   <div className="text-neo-yellow uppercase tracking-wider">{hoveredBar.name}</div>
-                  <div className="text-[9px] mt-0.5 text-stone-305">{hoveredBar.count} contributions</div>
+                  <div className="text-[9px] mt-0.5 text-stone-305">{hoveredBar.count} action{hoveredBar.count !== 1 ? "s" : ""}</div>
                   {/* Tooltip pointer notch */}
                   <div className="w-1.5 h-1.5 bg-neo-dark border-r-2 border-b-2 border-neo-dark rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2" />
                 </div>
@@ -437,7 +437,7 @@ export default function StatsTab({ vaultId, members, auditData }: StatsTabProps)
             <Users className="w-4 h-4 text-white stroke-[2.5]" />
           </div>
           <h3 className="font-display font-black text-sm uppercase tracking-wider text-neo-dark">
-            Workspace Researchers Index
+            Members
           </h3>
         </div>
         {loading ? (
@@ -458,11 +458,11 @@ export default function StatsTab({ vaultId, members, auditData }: StatsTabProps)
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="border-b-4 border-neo-dark bg-stone-50 text-[10px] font-mono tracking-wider text-stone-500 uppercase">
-                  <th className="p-3">Researcher Profile</th>
-                  <th className="p-3">Email Contact</th>
-                  <th className="p-3 text-center">Annotations added</th>
-                  <th className="p-3 text-center">Source Index updates</th>
-                  <th className="p-3 text-right">Metric Total</th>
+                  <th className="p-3">Member</th>
+                  <th className="p-3">Email</th>
+                  <th className="p-3 text-center">Annotations</th>
+                  <th className="p-3 text-center">Sources added</th>
+                  <th className="p-3 text-right">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y border-b border-stone-200">
@@ -499,7 +499,7 @@ export default function StatsTab({ vaultId, members, auditData }: StatsTabProps)
                         </span>
                       </td>
                       <td className="p-3 text-right font-display font-black text-neo-dark">
-                        {item.totalCount} counts
+                        {item.totalCount}
                       </td>
                     </tr>
                   );

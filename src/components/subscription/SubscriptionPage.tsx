@@ -49,7 +49,7 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
         setErrorMsg(res.message || "Could not change subscription tier.");
       }
     } catch (err: any) {
-      setErrorMsg("Failed to communicate with the Scholar Authority server.");
+      setErrorMsg("Failed to change plan. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -65,13 +65,13 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
             className="flex items-center gap-2 text-xs font-mono font-black text-stone-500 hover:text-neo-dark uppercase mb-2 group transition-colors"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Back to Research Repositories
+            Back to Dashboard
           </button>
           <h1 className="text-3xl font-black font-display text-neo-dark tracking-tight">
-            SCHOLAR POWER & LIMITS
+            AI USAGE & PLAN
           </h1>
           <p className="text-stone-600 text-sm font-mono mt-1">
-            Analyze your computational resource bounds and upgrade your research authority tier.
+            See how much AI you have used and upgrade your plan.
           </p>
         </div>
 
@@ -109,16 +109,16 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
         <div className="border-4 border-neo-dark bg-[#FFFDF2] p-6 rounded-xs shadow-[5px_5px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between border-b-2 border-neo-dark pb-3 mb-4">
-              <span className="text-xs font-mono font-black text-stone-600 uppercase tracking-wider">DAILY COMPUTE BOUNDS</span>
-              <span className="px-2 py-0.5 text-[10px] font-mono bg-neo-dark text-white rounded">24 HOURS RATE</span>
+              <span className="text-xs font-mono font-black text-stone-600 uppercase tracking-wider">DAILY AI USAGE</span>
+              <span className="px-2 py-0.5 text-[10px] font-mono bg-neo-dark text-white rounded">RESETS DAILY</span>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-mono text-stone-500 block">COMPREHENSIVE USAGE</span>
+              <span className="text-[10px] font-mono text-stone-500 block">USED TODAY</span>
               <div className="flex items-baseline gap-1">
                 <span className="text-4xl font-black font-display text-neo-dark">
                   {Math.round(dailyPct)}%
                 </span>
-                <span className="text-xs text-stone-500 ml-1.5 font-mono">capacity utilized</span>
+                <span className="text-xs text-stone-500 ml-1.5 font-mono">of daily limit</span>
               </div>
             </div>
           </div>
@@ -131,7 +131,7 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
               />
             </div>
             <div className="flex justify-between items-center text-[11px] font-mono">
-              <span className="font-bold text-stone-500">CONSUMPTION INDEX:</span>
+              <span className="font-bold text-stone-500">USED:</span>
               <span className="font-black text-neo-dark">{Math.round(dailyPct)}%</span>
             </div>
             <div className="flex items-center justify-between text-[10px] font-mono bg-white border-2 border-neo-dark p-2 rounded shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)] h-9">
@@ -143,7 +143,7 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
             </div>
             {dailyPct >= 100 && (
               <div className="p-2 border border-dashed border-red-500 bg-red-50 rounded text-[10px] font-mono text-red-700">
-                ⚠️ Daily capacity reached. Expand compute limits by upgrading to PRO.
+                ⚠️ Daily limit reached. Upgrade to Pro for more AI usage.
               </div>
             )}
           </div>
@@ -153,16 +153,16 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
         <div className="border-4 border-neo-dark bg-[#FFFDF2] p-6 rounded-xs shadow-[5px_5px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between border-b-2 border-neo-dark pb-3 mb-4">
-              <span className="text-xs font-mono font-black text-stone-600 uppercase tracking-wider">WEEKLY COMPUTE BOUNDS</span>
-              <span className="px-2 py-0.5 text-[10px] font-mono bg-stone-700 text-white rounded">7 DAYS RATE</span>
+              <span className="text-xs font-mono font-black text-stone-600 uppercase tracking-wider">WEEKLY AI USAGE</span>
+              <span className="px-2 py-0.5 text-[10px] font-mono bg-stone-700 text-white rounded">RESETS WEEKLY</span>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-mono text-stone-500 block">COMPREHENSIVE USAGE</span>
+              <span className="text-[10px] font-mono text-stone-500 block">USED THIS WEEK</span>
               <div className="flex items-baseline gap-1">
                 <span className="text-4xl font-black font-display text-teal-600">
                   {Math.round(weeklyPct)}%
                 </span>
-                <span className="text-xs text-stone-500 ml-1.5 font-mono">capacity utilized</span>
+                <span className="text-xs text-stone-500 ml-1.5 font-mono">of weekly limit</span>
               </div>
             </div>
           </div>
@@ -175,7 +175,7 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
               />
             </div>
             <div className="flex justify-between items-center text-[11px] font-mono">
-              <span className="font-bold text-stone-500">CONSUMPTION INDEX:</span>
+              <span className="font-bold text-stone-500">USED:</span>
               <span className="font-black text-neo-dark">{Math.round(weeklyPct)}%</span>
             </div>
             <div className="flex items-center justify-between text-[10px] font-mono bg-white border-2 border-neo-dark p-2 rounded shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)] h-9">
@@ -187,7 +187,7 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
             </div>
             {weeklyPct >= 100 && (
               <div className="p-2 border border-dashed border-red-500 bg-red-50 rounded text-[10px] font-mono text-red-700">
-                ⚠️ Weekly capacity reached. Expand weekly capability slots in PRO.
+                ⚠️ Weekly limit reached. Upgrade to Pro for more AI usage.
               </div>
             )}
           </div>
@@ -201,13 +201,13 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
 
           <div className="relative z-10">
             <h3 className="text-md font-black font-display text-neo-dark leading-none">
-              SCHOLAR CONTROLLER
+              CHANGE PLAN
             </h3>
             <span className="text-[10px] font-mono text-stone-500 uppercase block mt-1">
-              Instant Plan Simulator Settings
+              Switch between Free and Pro
             </span>
             <p className="text-xs text-stone-600 mt-2 leading-relaxed">
-              Toggle academic auth level level. Instantly increase dynamic sandbox daily/weekly compute capabilities for tests.
+              Switch your plan to test different AI limits. No real payment needed in this sandbox.
             </p>
           </div>
 
@@ -262,10 +262,10 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
           <div>
             <h2 className="text-xl font-black font-display tracking-tight flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-neo-yellow" />
-              TRIAL & PRO COMPETENCY MATRIX
+              FREE vs PRO — WHAT YOU GET
             </h2>
             <p className="text-[11px] font-mono text-stone-400 mt-0.5">
-              Review resource allocations, security bounds, and advanced analytical layers of each plan tier.
+              Compare features and AI limits across plans.
             </p>
           </div>
           <span className="px-2 py-1 text-[10px] font-mono bg-stone-800 text-neo-yellow font-black border border-stone-600 rounded">
@@ -280,8 +280,8 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
           <div className="p-6 space-y-6 bg-stone-50/50">
             <div className="flex items-center justify-between border-b-2 border-stone-200 pb-3">
               <div>
-                <span className="text-xs font-mono font-black text-stone-500 block">STANDARD LEVEL</span>
-                <h3 className="text-xl font-black font-display text-stone-700">FREE NOVICE</h3>
+                <span className="text-xs font-mono font-black text-stone-500 block">FREE PLAN</span>
+                <h3 className="text-xl font-black font-display text-stone-700">FREE</h3>
               </div>
               <span className="px-3 py-1 bg-stone-200 border-2 border-neo-dark font-mono font-bold text-xs text-stone-700">
                 $0 / LIFETIME
@@ -289,7 +289,7 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
             </div>
 
             <p className="text-xs text-stone-600 leading-relaxed font-sans">
-              Designed for individual entry-level students testing out file uploads and brief text parsing capabilities.
+              Good for individuals or small teams getting started with collaborative research.
             </p>
 
             {/* List of points */}
@@ -299,8 +299,8 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
                   <X className="w-3.5 h-3.5" />
                 </span>
                 <div>
-                  <strong className="block text-neo-dark font-display font-black">0 Custom Vaults allowed</strong>
-                  <span className="text-[10px] text-stone-500">Only access shared team vaults. Cannot produce new vaults.</span>
+                  <strong className="block text-neo-dark font-display font-black">No custom vaults</strong>
+                  <span className="text-[10px] text-stone-500">You can only join vaults others invite you to.</span>
                 </div>
               </li>
 
@@ -309,8 +309,8 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
                   <Database className="w-3.5 h-3.5" />
                 </span>
                 <div>
-                  <strong className="block text-neo-dark font-display font-black">3 Collaborating Scholars max</strong>
-                  <span className="text-[10px] text-stone-500">Fixed hard limit on the number of scholars you can add to vaults.</span>
+                  <strong className="block text-neo-dark font-display font-black">Up to 3 members per vault</strong>
+                  <span className="text-[10px] text-stone-500">You can add a maximum of 3 people to each vault.</span>
                 </div>
               </li>
 
@@ -319,8 +319,8 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
                   <Zap className="w-3.5 h-3.5 text-neo-orange" />
                 </span>
                 <div>
-                  <strong className="block text-neo-dark font-display font-black">100% Daily Smart AI compute load</strong>
-                  <span className="text-[10px] text-stone-500">Shared limit for summary requests, insights & enhance annotation depending on prompt complexity.</span>
+                  <strong className="block text-neo-dark font-display font-black">Limited daily AI usage</strong>
+                  <span className="text-[10px] text-stone-500">Shared limit across summaries, insights, and AI annotation help.</span>
                 </div>
               </li>
 
@@ -329,8 +329,8 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
                   <Users className="w-3.5 h-3.5" />
                 </span>
                 <div>
-                  <strong className="block text-stone-500 font-display font-bold">100% Weekly Smart AI compute load</strong>
-                  <span className="text-[10px] text-stone-400">Accumulated total weekly compute processing capacity threshold.</span>
+                  <strong className="block text-stone-500 font-display font-bold">Limited weekly AI usage</strong>
+                  <span className="text-[10px] text-stone-400">Total AI usage allowed across the full week.</span>
                 </div>
               </li>
             </ul>
@@ -346,9 +346,9 @@ export default function SubscriptionPage({ user, onNavigate, onUpdateUser }: Sub
           <div className="p-6 space-y-6 bg-yellow-50/20">
             <div className="flex items-center justify-between border-b-2 border-neo-dark pb-3">
               <div>
-                <span className="text-xs font-mono font-black text-neo-orange block">PREMIUM AUTHORITY</span>
+                <span className="text-xs font-mono font-black text-neo-orange block">PRO PLAN</span>
                 <h3 className="text-xl font-black font-display text-neo-dark flex items-center gap-1.5">
-                  PRO CITADEL SCHOLAR
+                  PRO
                   <Sparkles className="w-5 h-5 text-neo-orange" />
                 </h3>
               </div>

@@ -38,9 +38,6 @@ function AnnotationWorkspaceContent() {
   // Collaboration state
   const [conflictResult, setConflictResult] = useState<any>(null);
   const [workspacePresenceList, setWorkspacePresenceList] = useState<any[]>([]);
-  const [simulateCollaborators, setSimulateCollaborators] = useState(true);
-  const [collaboratorEditSimulating, setCollaboratorEditSimulating] = useState(false);
-  const [collaboratorEditSimulatedMessage, setCollaboratorEditSimulatedMessage] = useState("");
 
   // Reference pane state
   const [workspaceRefPaneTab, setWorkspaceRefPaneTab] = useState<
@@ -193,12 +190,6 @@ function AnnotationWorkspaceContent() {
     setWorkspacePreviousDraft("");
   };
 
-  const handleSimulateCollaboratorConflict = async () => {
-    // Simulation removed — real presence via Socket.IO is active
-    setCollaboratorEditSimulatedMessage("Real-time presence is active via WebSocket. Other editors appear automatically.");
-    setTimeout(() => setCollaboratorEditSimulatedMessage(""), 3000);
-  };
-
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto space-y-4 animate-pulse">
@@ -230,11 +221,6 @@ function AnnotationWorkspaceContent() {
       conflictResult={conflictResult}
       setConflictResult={setConflictResult}
       workspacePresenceList={workspacePresenceList}
-      simulateCollaborators={simulateCollaborators}
-      setSimulateCollaborators={setSimulateCollaborators}
-      collaboratorEditSimulating={collaboratorEditSimulating}
-      collaboratorEditSimulatedMessage={collaboratorEditSimulatedMessage}
-      setCollaboratorEditSimulatedMessage={setCollaboratorEditSimulatedMessage}
       workspacePageRef={workspacePageRef}
       setWorkspacePageRef={setWorkspacePageRef}
       workspaceSectionRef={workspaceSectionRef}
@@ -249,7 +235,6 @@ function AnnotationWorkspaceContent() {
       loadVaultDetail={() => router.push("/dashboard")}
       loadSourceDetail={(id) => router.push(`/source/${vaultId}/${id}`)}
       handleSaveWorkspace={handleSaveWorkspace}
-      handleSimulateCollaboratorConflict={handleSimulateCollaboratorConflict}
       handleAIEnhanceWorkspace={handleAIEnhanceWorkspace}
       handleRevertAIWorkspace={handleRevertAIWorkspace}
       workspaceRefPaneTab={workspaceRefPaneTab}

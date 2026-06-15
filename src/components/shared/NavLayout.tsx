@@ -299,7 +299,7 @@ export default function NavLayout({
                 Research Citadel
               </h1>
               <span className="inline-block px-1.5 py-0.5 mt-1 bg-black text-yellow-300 text-[8px] font-mono font-bold uppercase leading-none">
-                Academic Co-Writing Engine
+                Collaborative Research Tool
               </span>
             </div>
           </div>
@@ -330,7 +330,7 @@ export default function NavLayout({
               <button
                 onClick={() => { setChatDropdownOpen(!chatDropdownOpen); setNotificationsDropdownOpen(false); setDropdownOpen(false); }}
                 className="relative flex items-center justify-center w-10 h-10 border-2 border-black bg-white shadow-[2.5px_2.5px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_#000] active:translate-x-0 active:translate-y-0 transition-all cursor-pointer text-black"
-                title="Vault Chats Hub"
+                title="Messages"
               >
                 <MessageSquare className="w-5.5 h-5.5 text-black stroke-[3]" />
                 {totalUnread > 0 && (
@@ -354,7 +354,7 @@ export default function NavLayout({
                   </div>
                   <div className="max-h-[230px] overflow-y-auto divide-y divide-stone-200 custom-scrollbar">
                     {chats.length === 0 ? (
-                      <div className="p-4 text-center text-[10px] text-stone-400 font-mono italic">No active chat groups found.</div>
+                      <div className="p-4 text-center text-[10px] text-stone-400 font-mono italic">No chats yet.</div>
                     ) : (
                       chats.map((c: any) => (
                         <div
@@ -396,7 +396,7 @@ export default function NavLayout({
               <button
                 onClick={() => { setNotificationsDropdownOpen(!notificationsDropdownOpen); setChatDropdownOpen(false); setDropdownOpen(false); }}
                 className="relative flex items-center justify-center w-10 h-10 border-2 border-black bg-white shadow-[2.5px_2.5px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_#000] active:translate-x-0 active:translate-y-0 transition-all cursor-pointer text-black"
-                title="Laboratory Notifications"
+                title="Notifications"
               >
                 <Bell className="w-5.5 h-5.5 text-black stroke-[3]" />
                 {unreadNotificationCount > 0 && (
@@ -504,7 +504,7 @@ export default function NavLayout({
                   {/* AI POWER GRID */}
                   <div className="p-2 border-b-2 border-neo-dark bg-yellow-50/50 rounded-xs mb-1">
                     <div className="flex justify-between items-center text-[9px] font-bold text-stone-600 uppercase">
-                      <span>AI Power Grid</span>
+                      <span>AI Usage</span>
                       <span className={`px-1.5 py-0.5 text-[8.5px] font-mono font-black border shadow-[1px_1px_0px_#0A0A0A] ${user.plan === 'PRO' ? 'bg-neo-yellow text-neo-dark border-neo-dark' : 'bg-stone-100 text-stone-700 border-stone-300'}`}>
                         {user.plan || 'FREE'}
                       </span>
@@ -512,8 +512,8 @@ export default function NavLayout({
                     <div className="mt-1.5 space-y-1.5">
                       <div>
                         <div className="flex justify-between text-[8px] font-mono leading-none">
-                          <span>Daily AI Rate:</span>
-                          <span className="font-bold">{dailyPct}% Used</span>
+                          <span>Daily:</span>
+                          <span className="font-bold">{dailyPct}% used</span>
                         </div>
                         <div className="w-full bg-stone-200 h-1.5 border border-neo-dark rounded-full overflow-hidden mt-0.5">
                           <div className={`${dailyPct < 30 ? "bg-blue-500" : dailyPct <= 60 ? "bg-yellow-400" : dailyPct <= 85 ? "bg-purple-500" : "bg-red-500"} h-full transition-all duration-300`} style={{ width: `${dailyPct}%` }} />
@@ -521,8 +521,8 @@ export default function NavLayout({
                       </div>
                       <div>
                         <div className="flex justify-between text-[8px] font-mono leading-none">
-                          <span>Weekly AI Rate:</span>
-                          <span className="font-bold">{weeklyPct}% Used</span>
+                          <span>Weekly:</span>
+                          <span className="font-bold">{weeklyPct}% used</span>
                         </div>
                         <div className="w-full bg-stone-200 h-1.5 border border-neo-dark rounded-full overflow-hidden mt-0.5">
                           <div className={`${weeklyPct < 30 ? "bg-blue-500" : weeklyPct <= 60 ? "bg-yellow-400" : weeklyPct <= 85 ? "bg-purple-500" : "bg-red-500"} h-full transition-all duration-300`} style={{ width: `${weeklyPct}%` }} />
@@ -558,7 +558,7 @@ export default function NavLayout({
 
       {/* Footer */}
       <footer className="mt-auto border-t-4 border-neo-dark bg-white p-4 text-center text-[11px] font-mono font-bold text-stone-500 select-none">
-        &copy; {new Date().getFullYear()} Research Citadel Workspace Core — Dedicated Secure Sandbox Encryption Module
+        &copy; {new Date().getFullYear()} Research Citadel
       </footer>
     </div>
   );
