@@ -1,0 +1,6 @@
+1. the chat and notification does not take you to the source (chat/notification)
+    - When you click on a chat (in the chat dropdown in the navbar), you are not redirected to that chat. This needs to be fixed
+2. The Skeleton take additional time. It should only appear when loading state
+3. there is an api request when switching tabs in the dashboard, need to cache theme
+4. the avatars in the dashboard are not using the user avatars, and for instance we are in a chat and the members do not have an avatar then you must use the letter avatar, same for researcher tab, annotation page etc where avatars appear
+5. Fix the skeleton in the researchers tab
