@@ -7,7 +7,7 @@ import MarkdownRenderer from "@/components/shared/MarkdownRenderer";
 import {
   FileText, Edit3, PlusCircle, Info, Check, BookOpen, Eye,
   Folder, Terminal, Cpu, Sparkles, ChevronDown, ChevronRight, Compass,
-  Award, StickyNote, ArrowUpRight
+  Award, StickyNote, ArrowUpRight, ArrowRightLeft
 } from "lucide-react";
 
 interface AnnotationWorkspacePageProps {
