@@ -62,6 +62,11 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=${{ env.PUBLIC_API_URL }}
           # `main` is what the server follows; the sha is what you roll back to.
+          # Links the package to this repository, so it shows up on the repo
+          # page rather than only under the account's Packages tab.
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
           tags: |
             ${{ env.IMAGE }}:main
             ${{ env.IMAGE }}:${{ github.sha }}
