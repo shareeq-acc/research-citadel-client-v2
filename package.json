@@ -20,19 +20,21 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
-    "@next/swc-linux-x64-gnu": "16.2.7",
-    "@next/swc-linux-x64-musl": "16.2.7",
-    "@tailwindcss/oxide-linux-x64-gnu": "^4.3.1",
-    "@tailwindcss/oxide-linux-x64-musl": "^4.3.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
-    "lightningcss-linux-x64-gnu": "^1.32.0",
-    "lightningcss-linux-x64-musl": "^1.32.0",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "@next/swc-linux-x64-gnu": "16.2.7",
+    "@next/swc-linux-x64-musl": "16.2.7",
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.3.1",
+    "@tailwindcss/oxide-linux-x64-musl": "^4.3.1",
+    "lightningcss-linux-x64-gnu": "^1.32.0",
+    "lightningcss-linux-x64-musl": "^1.32.0"
   }
 }
