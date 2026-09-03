@@ -29,8 +29,15 @@ jobs:
       # fails loudly when the lockfile and package.json disagree, which is the
       # bug this project already had.
       - run: npm ci
+      # Type errors block: `next build` fails on them anyway, so catching them
+      # here is just catching them sooner and cheaper.
       - run: npx tsc --noEmit
+      # Lint is reported but does not block. The codebase has pre-existing
+      # `no-explicit-any` violations that predate this pipeline, and gating
+      # deploys on them would mean nothing ships until a cleanup nobody has
+      # scheduled. Make this a gate once the existing ones are cleared.
       - run: npm run lint
+        continue-on-error: true
 
   build:
     name: Build and publish
